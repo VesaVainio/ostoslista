@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ostoslista", "Ostoslista\Ostoslista.csproj", "{D05E18AA-F8CB-4949-8B32-C47E4C20224B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D05E18AA-F8CB-4949-8B32-C47E4C20224B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D05E18AA-F8CB-4949-8B32-C47E4C20224B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D05E18AA-F8CB-4949-8B32-C47E4C20224B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D05E18AA-F8CB-4949-8B32-C47E4C20224B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
