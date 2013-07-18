@@ -15,11 +15,11 @@
                 return;
             }
 
-            var listOptions = $.map(listPermissionItems, function(item) {
-                return $('option')
-                    .attr('value', item.listId).val(item.listName);
+            var options = $('#lists');
+            $.each(listPermissionItems, function () {
+                options.append($("<option />").val(this.id).text(this.listName));
             });
-            $('#lists').empty().append(listOptions);
+
             refreshTodoItems();
         }, handleError);
     }
@@ -83,7 +83,6 @@
         var isLoggedIn = client.currentUser !== null;
         $("#logged-in").toggle(isLoggedIn);
         $("#logged-out").toggle(!isLoggedIn);
-
 
         if (isLoggedIn) {
             client.invokeApi("getfbaccesstoken", {
