@@ -32,7 +32,7 @@
         <div id='wrapper'>
             <article>
                 <header>
-                    <h1>Mobile Services</h1>
+                    <h1>Ostoslista</h1>
                     <div id="logged-in">
                         Tervetuloa, <span id="login-name"></span>.
                         <button id="log-out">Kirjaudu ulos</button>
@@ -43,6 +43,10 @@
                     </div>
                     <div id="change-list">
                         Aktiivinen ostoslista: <select id="lists"></select>. <button id="add-new-list">Lisää uusi</button>
+                        <form id="add-list">
+                            <button type="submit">Lisää</button> <button id="cancel-add-list">Peruuta</button>
+                            <div><input type="text" id="new-list-name" placeholder="Kirjoita uuden ostoslistan nimi" /></div>
+                        </form>
                     </div>
                     <form id='add-item'>
                         <button type='submit'>Lisää</button>
