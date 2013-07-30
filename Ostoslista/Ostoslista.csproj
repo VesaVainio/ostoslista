@@ -134,8 +134,13 @@
     <Content Include="channel.html" />
     <Content Include="Global.asax" />
     <Content Include="index.html" />
+    <Content Include="less_styles.css">
+      <DependentUpon>less_styles.less</DependentUpon>
+    </Content>
+    <Content Include="less_styles.min.css">
+      <DependentUpon>less_styles.less</DependentUpon>
+    </Content>
     <Content Include="page.js" />
-    <Content Include="styles.css" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
@@ -155,6 +160,7 @@
   <ItemGroup>
     <None Include="Properties\PublishProfiles\ostoslista - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\ostoslista - Web Deploy.pubxml" />
+    <Content Include="less_styles.less" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

@@ -3,7 +3,7 @@
     <head>
         <meta charset='utf-8' />
         <title>Ostoslista</title>
-        <link rel='stylesheet' href='styles.css' />
+        <link rel='stylesheet' href='less_styles.min.css' />
         <meta name='viewport' content='width=device-width' />
         <!--[if lt IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6.1/html5shiv.js"></script><![endif]-->
     </head>
@@ -39,14 +39,16 @@
                     </div>
                     <div id="logged-out">
                         Kirjaudu sisään Facebook-tunnuksellasi, jotta voit käyttää ostoslistoja.
-                        <button>Kirjaudu sisään</button>
+                        <button id="log-in">Kirjaudu sisään</button>
                     </div>
                     <div id="change-list">
                         Aktiivinen ostoslista: <select id="lists"></select>. <button id="add-new-list">Lisää uusi</button>
-                        <form id="add-list">
-                            <button type="submit">Lisää</button> <button id="cancel-add-list">Peruuta</button>
-                            <div><input type="text" id="new-list-name" placeholder="Kirjoita uuden ostoslistan nimi" /></div>
-                        </form>
+                        <div id="add-list-panel">
+                            <form id="add-list">
+                                <button id="cancel-add-list">Peruuta</button> <button type="submit">Lisää</button> 
+                                <div><input type="text" id="new-list-name" placeholder="Kirjoita uuden ostoslistan nimi" /></div>
+                            </form>
+                        </div>
                     </div>
                     <form id='add-item'>
                         <button type='submit'>Lisää</button>

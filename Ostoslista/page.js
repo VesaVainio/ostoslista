@@ -1,6 +1,7 @@
-﻿$(function () {
+﻿
+var ostoslistaState = { userName: '', accessToken: '' };
 
-    var userName;
+$(function () {
 
     var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobile.net/', 'wFWmmDhjlWzQVQzuFTxIxRTKhdBrSx70'),
         todoItemTable = client.getTable('todoitem'),
@@ -11,7 +12,7 @@
         var query = listPermissionTable.where({});
         query.read().then(function (listPermissionItems) {
             if (listPermissionItems.length == 0) {
-                listPermissionTable.insert({ listName: "OLETUS", userName: userName, listId: guid() }).then(refreshLists, handleError);
+                listPermissionTable.insert({ listName: "OLETUS", userName: ostoslistaState.userName, listId: guid() }).then(refreshLists, handleError);
                 return;
             }
 
@@ -46,7 +47,7 @@
             var listItems = $.map(todoItems, function(item) {
                 return $('<li>')
                     .attr('data-todoitem-id', item.id)
-                    .append($('<button class="item-delete">Delete</button>'))
+                    .append($('<button class="item-delete">Poista</button>'))
                     .append($('<input type="checkbox" class="item-complete">').prop('checked', item.complete))
                     .append($('<div>').append($('<input class="item-text">').val(item.text)));
             });
@@ -84,14 +85,14 @@
             listId = $('#lists option:selected').val();
         if (itemText !== '') {
             var newGuid = guid();
-            listPermissionTable.insert({ listName: itemText, userName: userName, listId: newGuid }).then(function () {
+            listPermissionTable.insert({ listName: itemText, userName: ostoslistaState.userName, listId: newGuid }).then(function () {
                 refreshLists(function () {
                     closeAddListPanel();
                     $('#lists').val(newGuid);
                 });
             }, handleError);
         }
-        textbox.val('').focus();
+        textbox.val('');
         evt.preventDefault();
     });
 
@@ -128,13 +129,20 @@
             }).done(function (results) {
                 var responseString = results.response;
                 var responseJson = JSON.parse(responseString);
-                var accessToken = responseJson.accessToken;
-                FB.api('/me?access_token=' + accessToken, function (response) {
-                    userName = response.name;
-                    $("#login-name").text(userName);
+                ostoslistaState.accessToken = responseJson.accessToken;
+                FB.api('/me?access_token=' + responseJson.accessToken, function (response) {
+                    ostoslistaState.userName = response.name;
+                    $("#login-name").text(response.name);
                     refreshLists();
+                    var otherbuttons = $('input, button').not('#log-in');
+                    otherbuttons.removeAttr('disabled');
                 });
             }, handleError);
+        }
+        else
+        {
+            var otherbuttons = $('input, button').not('#log-in');
+            otherbuttons.attr('disabled', 'disabled');
         }
     }
 
@@ -148,23 +156,23 @@
         client.logout();
         $('#lists').empty();
         refreshAuthDisplay();
-        $('#summary').html('<strong>You must login to access data.</strong>');
+        $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
     }
 
-    function openAddListPanel()
-    {
-        $('#add-list').show();
+    function openAddListPanel() {
+        $('#add-list-panel').show();
+        $('#new-list-name').focus();
     }
 
     function closeAddListPanel() {
-        $('#add-list').hide();
+        $('#add-list-panel').hide();
     }
 
     // On page init, fetch the data and set up event handlers
     $(function () {
         closeAddListPanel();
         refreshAuthDisplay();
-        $('#summary').html('<strong>You must login to access data.</strong>');
+        $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
         $("#logged-out button").click(logIn);
         $("#logged-in button").click(logOut);
         $("#change-list button#add-new-list").click(openAddListPanel);
