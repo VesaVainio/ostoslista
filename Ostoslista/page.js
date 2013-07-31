@@ -1,5 +1,5 @@
 ﻿
-var ostoslistaState = { userName: '', accessToken: '' };
+var ostoslistaState = { userName: '', accessToken: '', friends: null };
 
 $(function () {
 
@@ -130,19 +130,17 @@ $(function () {
                 var responseString = results.response;
                 var responseJson = JSON.parse(responseString);
                 ostoslistaState.accessToken = responseJson.accessToken;
-                FB.api('/me?access_token=' + responseJson.accessToken, function (response) {
+                FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
                     ostoslistaState.userName = response.name;
                     $("#login-name").text(response.name);
                     refreshLists();
-                    var otherbuttons = $('input, button').not('#log-in');
-                    otherbuttons.removeAttr('disabled');
+                    $('input, button').not('#log-in').removeAttr('disabled');
                 });
             }, handleError);
         }
         else
         {
-            var otherbuttons = $('input, button').not('#log-in');
-            otherbuttons.attr('disabled', 'disabled');
+            $('input, button').not('#log-in').attr('disabled', 'disabled');
         }
     }
 
@@ -168,14 +166,35 @@ $(function () {
         $('#add-list-panel').hide();
     }
 
+    function openAddFriendPanel() {
+        $('#add-friend-panel').show();
+        $('#new-list-name').focus();
+        if (!ostoslistaState.friends) {
+            FB.api('/me/friends?fields=id,name&access_token=' + ostoslistaState.accessToken, function (response) {
+                ostoslistaState.friends = response.data;
+            });
+        }
+    }
+
+    function closeAddFriendPanel(evt) {
+        $('#add-friend-panel').hide();
+        if (evt)
+        {
+            evt.preventDefault();
+        }
+    }
+
     // On page init, fetch the data and set up event handlers
     $(function () {
         closeAddListPanel();
+        closeAddFriendPanel();
         refreshAuthDisplay();
         $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
         $("#logged-out button").click(logIn);
         $("#logged-in button").click(logOut);
         $("#change-list button#add-new-list").click(openAddListPanel);
         $("#change-list button#cancel-add-list").click(closeAddListPanel);
+        $("#sharing button#share-list").click(openAddFriendPanel);
+        $("#sharing button#cancel-add-friend").click(closeAddFriendPanel);
     });
 });
