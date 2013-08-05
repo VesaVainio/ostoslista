@@ -43,6 +43,7 @@
                     </div>
                     <div id="change-list">
                         Aktiivinen ostoslista: <select id="lists"></select>. <button id="add-new-list">Lisää uusi</button>
+                        <button id="share-list">Jaa ostoslista Facebook-ystävän kanssa</button>
                         <div id="add-list-panel">
                             <form id="add-list">
                                 <button id="cancel-add-list">Peruuta</button> <button type="submit">Lisää</button> 
@@ -51,14 +52,15 @@
                         </div>
                     </div>
                     <div id="sharing">
-                        <button id="share-list">Jaa ostoslista Facebook-ystävän kanssa</button>
-                        <div id="add-friend-panel">
-                            <form id="add-friend">
-                                <button id="cancel-add-friend">Peruuta</button>
-                                <div><input type="text" id="new-friend-name" placeholder="Kirjoita Facebook-ystävän nimi" /></div>
-                            </form>
+                        <div id="shared-friends" style="display:none;">Jaettu seuraavien ystävien kanssa: </div>
+                            <div id="add-friend-panel">
+                                <form id="add-friend">
+                                    <button id="cancel-add-friend">Peruuta</button>
+                                    <div><input type="text" id="new-friend-name" placeholder="Kirjoita Facebook-ystävän nimi" /></div>
+                                    <div id="friends-popup" style="display:none;"></div>
+                                </form>
+                            </div>
                         </div>
-                    </div>
                     <form id='add-item'>
                         <button type='submit'>Lisää</button>
                         <div><input type='text' id='new-item-text' placeholder='Kirjoita lisättävä asia' /></div>

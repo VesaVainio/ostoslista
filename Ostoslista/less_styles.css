@@ -1,5 +1,8 @@
 ﻿/* Variables */
 /* Mixins */
+.SlightlyRoundedBorders {
+  border-radius: 4px;
+}
 /* Reset and define common styles */
 * {
   -webkit-box-sizing: border-box;
@@ -14,12 +17,17 @@ body {
 }
 button {
   border: 1px solid #999;
-  color: #555;
-  background-color: #F4F4FA;
+  color: #555555;
+  background-color: #f4f4fa;
   padding: 0 10px;
 }
 button:hover {
+  color: black;
   background-color: white;
+}
+button.disabled-ui:hover {
+  color: #555555;
+  background-color: #f4f4fa;
 }
 input[type=text],
 input:not([type]) {
@@ -112,6 +120,52 @@ header button {
   padding: 20px;
   background-color: #71bcfa;
   width: 480px;
+}
+#friends-popup {
+  border: 1px solid black;
+  background-color: white;
+}
+#friends-popup #imgdiv {
+  float: left;
+  margin: 0 10px 0 0;
+  height: 50px;
+}
+#friends-popup #rowdiv {
+  border-bottom: 1px solid #dadada;
+  padding: 5px;
+  margin: 0;
+}
+#friends-popup #rowdiv:hover {
+  background-color: #64d564;
+}
+#friends-popup #namediv {
+  line-height: 40px;
+}
+#shared-friends #friend-frame {
+  border-radius: 4px;
+  border: 1px solid #999;
+  background-color: #a2d2f9;
+  display: inline-block;
+  margin: 4px;
+}
+#shared-friends #friend-frame #namediv {
+  display: inline-block;
+  color: #555555;
+  padding: 0 2px 0 4px;
+  margin: 4px 0;
+}
+#shared-friends #friend-frame #xdiv {
+  display: inline-block;
+  cursor: pointer;
+  color: #888;
+  padding: 0 6px 0 6px;
+  margin: 4px 0;
+}
+#shared-friends #friend-frame #xdiv:hover {
+  color: #444;
+}
+#shared-friends #friend-frame #xdiv.disabled-ui:hover {
+  color: #888;
 }
 /* List of items */
 #todo-items li {

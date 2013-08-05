@@ -1,7 +1,13 @@
 ﻿
-var ostoslistaState = { userName: '', accessToken: '', friends: null };
+var ostoslistaState = { userName: '', accessToken: '', friends: null, waitingForFriends: false };
 
 $(function () {
+
+    if (typeof String.prototype.startsWith != 'function') {
+        String.prototype.startsWith = function (str){
+            return this.slice(0, str.length).toUpperCase() == str.toUpperCase();
+        };
+    }
 
     var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobile.net/', 'wFWmmDhjlWzQVQzuFTxIxRTKhdBrSx70'),
         todoItemTable = client.getTable('todoitem'),
@@ -24,6 +30,7 @@ $(function () {
             typeof callback === 'function' && callback();
 
             refreshTodoItems();
+            refreshSharedFriends();
         }, handleError);
     }
 
@@ -55,6 +62,36 @@ $(function () {
             $('#todo-items').empty().append(listItems).toggle(listItems.length > 0);
             $('#summary').html('<strong>' + todoItems.length + '</strong> asiaa listalla');
         }, handleError);
+    }
+
+    function refreshSharedFriends()
+    {
+        var listId = $('#lists option:selected').val();
+        var query = listPermissionTable.where({ listId: listId });
+        var sharedFriends = $('#shared-friends');
+
+        query.read().then(function (listPermissions) {
+            ostoslistaState.listPermissions = listPermissions;
+            
+            if (listPermissions.length > 0) {
+                sharedFriends.empty().show();
+                sharedFriends.text('Jaettu seuraavien ystävien kanssa: ');
+
+                for (var i = 0; i < listPermissions.length; i++) {
+                    var friendName = listPermissions[i].userName;
+                    var friendId = listPermissions[i].userId;
+                    var friendElement = $('<div id="friend-frame">')
+                        .append($('<div id="namediv">' + friendName + '</div>'))
+                        .append($('<div id="xdiv">').attr('data-friend-id', friendId).text('x'));
+
+                    sharedFriends.append(friendElement);
+                }
+            }
+            else
+            {
+                sharedFriends.empty().hide();
+            }
+        });
     }
 
     function handleError(error) {
@@ -98,6 +135,7 @@ $(function () {
 
     $('#lists').change(function (evt) {
         refreshTodoItems();
+        refreshSharedFriends();
         evt.preventDefault();
     });
 
@@ -117,6 +155,93 @@ $(function () {
         todoItemTable.del({ id: getTodoItemId(this) }).then(refreshTodoItems, handleError);
     });
 
+    $('#friends-popup').on('click', 'div#rowdiv', function () {
+        var id = $(this).attr('data-friend-id');
+        var friendsArray = ostoslistaState.friends;
+        var friendName;
+
+        for (var i = 0; i < friendsArray.length; i++) {
+            if (friendsArray[i].id === id)
+            {
+                friendName = friendsArray[i].name;
+                break;
+            }
+        }
+
+        var listId = $('#lists option:selected').val();
+        var listName = $('#lists option:selected').text();
+
+        listPermissionTable.insert({
+            listName: listName,
+            userId: 'Facebook:' + id,
+            userName: friendName,
+            listId: listId
+        }).then(refreshSharedFriends, handleError);
+    });
+
+    $('#new-friend-name').keyup(function () {
+        if ($('#new-friend-name').text.length > 0)
+        {
+            checkForFriends(true);
+        }
+        else
+        {
+            hideFriendsPopup();
+        }
+    });
+
+    function checkForFriends(isNewKeypress)
+    {
+        if (ostoslistaState.friends)
+        {
+            buildFriendsPopup();
+        }
+        else if (!ostoslistaState.waitingForFriends || !isNewKeypress)
+        {
+            ostoslistaState.waitingForFriends = true;
+            setTimeout(checkForFriends, 100);
+        }
+    }
+
+    function buildFriendsPopup()
+    {
+        var friendsToShow = new Array();
+        var prefix = $('#new-friend-name').val();
+
+        for (var i = 0; i < ostoslistaState.friends.length && friendsToShow.length < 5; i++) {
+            var friend = ostoslistaState.friends[i];
+
+            if (friend.firstName.startsWith(prefix) || friend.lastName.startsWith(prefix))
+            {
+                friendsToShow.push(friend);
+            }
+        }
+
+        if (friendsToShow.length > 0)
+        {
+            var items = $.map(friendsToShow, function (item) {
+                return $('<div id="rowdiv">')
+                    .attr('data-friend-id', item.id)
+                    .append($('<div id="imgdiv"><img src="http://graph.facebook.com/' + item.id + '/picture" width="50" height="50"></div>'))
+                    .append($('<div id="namediv">' + item.name + '</div>'));
+            });
+
+            $('#friends-popup').empty().append(items).show();
+        }
+    }
+
+    function processFriendsData(data) {
+        data.sort(function (a, b) {
+            if (a.name > b.name) return 1;
+            else if (a.name < b.name) return -1;
+            return 0;
+        });
+        ostoslistaState.friends = $.map(data, function (item) {
+            var splitName = item.name.split(' ');
+            return { id: item.id, name: item.name, firstName: splitName[0], lastName: splitName[1] };
+        });
+    }
+
     function refreshAuthDisplay() {
         var isLoggedIn = client.currentUser !== null;
         $("#logged-in").toggle(isLoggedIn);
@@ -134,13 +259,13 @@ $(function () {
                     ostoslistaState.userName = response.name;
                     $("#login-name").text(response.name);
                     refreshLists();
-                    $('input, button').not('#log-in').removeAttr('disabled');
+                    $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
                 });
             }, handleError);
         }
         else
         {
-            $('input, button').not('#log-in').attr('disabled', 'disabled');
+            $('input, button, div#xdiv').not('#log-in').attr('disabled', 'disabled').addClass('disabled-ui');
         }
     }
 
@@ -155,6 +280,7 @@ $(function () {
         $('#lists').empty();
         refreshAuthDisplay();
         $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
+        closeAllPanels();
     }
 
     function openAddListPanel() {
@@ -168,10 +294,10 @@ $(function () {
 
     function openAddFriendPanel() {
         $('#add-friend-panel').show();
-        $('#new-list-name').focus();
+        $('#new-friend-name').focus();
         if (!ostoslistaState.friends) {
             FB.api('/me/friends?fields=id,name&access_token=' + ostoslistaState.accessToken, function (response) {
-                ostoslistaState.friends = response.data;
+                processFriendsData(response.data);
             });
         }
     }
@@ -184,17 +310,28 @@ $(function () {
         }
     }
 
-    // On page init, fetch the data and set up event handlers
-    $(function () {
+    function hideFriendsPopup()
+    {
+        $('friends-popup').empty().hide();
+    }
+
+    function closeAllPanels()
+    {
         closeAddListPanel();
         closeAddFriendPanel();
+        hideFriendsPopup();
+    }
+
+    // On page init, fetch the data and set up event handlers
+    $(function () {
+        closeAllPanels();
         refreshAuthDisplay();
         $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
         $("#logged-out button").click(logIn);
         $("#logged-in button").click(logOut);
         $("#change-list button#add-new-list").click(openAddListPanel);
         $("#change-list button#cancel-add-list").click(closeAddListPanel);
-        $("#sharing button#share-list").click(openAddFriendPanel);
-        $("#sharing button#cancel-add-friend").click(closeAddFriendPanel);
+        $("button#share-list").click(openAddFriendPanel);
+        $("button#cancel-add-friend").click(closeAddFriendPanel);
     });
 });
