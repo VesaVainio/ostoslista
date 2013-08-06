@@ -71,6 +71,11 @@ header div {
 header button {
   padding: 2px 10px;
 }
+header #logged-in,
+header #logged-out,
+header #change-list {
+  margin-top: 12px;
+}
 #summary {
   text-align: center;
   padding: 8px 0;

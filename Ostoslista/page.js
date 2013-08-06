@@ -1,5 +1,6 @@
 ﻿
-var ostoslistaState = { userName: '', accessToken: '', friends: null, waitingForFriends: false };
+var ostoslistaState = { userName: '', userId: '', accessToken: '', friends: null, waitingForFriends: false };
+var progressState = { timer: null };
 
 $(function () {
 
@@ -15,7 +16,8 @@ $(function () {
         listPermissionTable = client.getTable('listpermission');
         
     function refreshLists(callback) {
-        var query = listPermissionTable.where({});
+        var query = listPermissionTable.where({ userId: ostoslistaState.userId });
+        initProgressIndicator();
         query.read().then(function (listPermissionItems) {
             if (listPermissionItems.length == 0) {
                 listPermissionTable.insert({ listName: "OLETUS", userName: ostoslistaState.userName, listId: guid() }).then(refreshLists, handleError);
@@ -31,6 +33,7 @@ $(function () {
 
             refreshTodoItems();
             refreshSharedFriends();
+            cancelProgressIndicator();
         }, handleError);
     }
 
@@ -73,22 +76,25 @@ $(function () {
         query.read().then(function (listPermissions) {
             ostoslistaState.listPermissions = listPermissions;
             
-            if (listPermissions.length > 0) {
+            if (listPermissions.length > 1) {
                 sharedFriends.empty().show();
                 sharedFriends.text('Jaettu seuraavien ystävien kanssa: ');
 
                 for (var i = 0; i < listPermissions.length; i++) {
-                    var friendName = listPermissions[i].userName;
                     var friendId = listPermissions[i].userId;
-                    var friendElement = $('<div id="friend-frame">')
-                        .append($('<div id="namediv">' + friendName + '</div>'))
-                        .append($('<div id="xdiv">').attr('data-friend-id', friendId).text('x'));
 
-                    sharedFriends.append(friendElement);
+                    if (friendId !== ostoslistaState.userId) {
+                        var friendName = listPermissions[i].userName;
+                        var permissionId = listPermissions[i].id;
+
+                        var friendElement = $('<div id="friend-frame">')
+                            .append($('<div id="namediv">' + friendName + '</div>'))
+                            .append($('<div id="xdiv">').attr('data-permission-id', permissionId).text('x'));
+
+                        sharedFriends.append(friendElement);
+                    }
                 }
-            }
-            else
-            {
+            } else {
                 sharedFriends.empty().hide();
             }
         });
@@ -108,9 +114,11 @@ $(function () {
         var textbox = $('#new-item-text'),
             itemText = textbox.val(),
             listId = $('#lists option:selected').val();
+
         if (itemText !== '') {
             todoItemTable.insert({ text: itemText, complete: false, listId: listId }).then(refreshTodoItems, handleError);
         }
+
         textbox.val('').focus();
         evt.preventDefault();
     });
@@ -134,8 +142,10 @@ $(function () {
     });
 
     $('#lists').change(function (evt) {
+        initProgressIndicator();
         refreshTodoItems();
         refreshSharedFriends();
+        cancelProgressIndicator();
         evt.preventDefault();
     });
 
@@ -161,8 +171,7 @@ $(function () {
         var friendName;
 
         for (var i = 0; i < friendsArray.length; i++) {
-            if (friendsArray[i].id === id)
-            {
+            if (friendsArray[i].id === id) {
                 friendName = friendsArray[i].name;
                 break;
             }
@@ -179,25 +188,48 @@ $(function () {
         }).then(refreshSharedFriends, handleError);
     });
 
+    $('#shared-friends').on('click', 'div#xdiv', function () {
+        var id = $(this).attr('data-permission-id');
+
+        initProgressIndicator();
+        listPermissionTable.del({
+            id: id
+        }).then(function () {
+            refreshSharedFriends();
+            cancelProgressIndicator();
+        }, handleError);
+    });
+
     $('#new-friend-name').keyup(function () {
-        if ($('#new-friend-name').text.length > 0)
-        {
+        if ($('#new-friend-name').val().length > 0) {
             checkForFriends(true);
-        }
-        else
-        {
+        } else {
             hideFriendsPopup();
         }
     });
 
+    $('#new-friend-name').keydown(function (e) {
+        if (e.which === 27) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAddFriendPanel();
+        }
+    });
+
+    $('#new-list-name').keydown(function (e) {
+        if (e.which === 27) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAddListPanel();
+        }
+    });
+    
     function checkForFriends(isNewKeypress)
     {
         if (ostoslistaState.friends)
         {
             buildFriendsPopup();
-        }
-        else if (!ostoslistaState.waitingForFriends || !isNewKeypress)
-        {
+        } else if (!ostoslistaState.waitingForFriends || !isNewKeypress) {
             ostoslistaState.waitingForFriends = true;
             setTimeout(checkForFriends, 100);
         }
@@ -211,14 +243,12 @@ $(function () {
         for (var i = 0; i < ostoslistaState.friends.length && friendsToShow.length < 5; i++) {
             var friend = ostoslistaState.friends[i];
 
-            if (friend.firstName.startsWith(prefix) || friend.lastName.startsWith(prefix))
-            {
+            if (friend.firstName.startsWith(prefix) || friend.lastName.startsWith(prefix)) {
                 friendsToShow.push(friend);
             }
         }
 
-        if (friendsToShow.length > 0)
-        {
+        if (friendsToShow.length > 0) {
             var items = $.map(friendsToShow, function (item) {
                 return $('<div id="rowdiv">')
                     .attr('data-friend-id', item.id)
@@ -236,6 +266,7 @@ $(function () {
             else if (a.name < b.name) return -1;
             return 0;
         });
+
         ostoslistaState.friends = $.map(data, function (item) {
             var splitName = item.name.split(' ');
             return { id: item.id, name: item.name, firstName: splitName[0], lastName: splitName[1] };
@@ -248,6 +279,7 @@ $(function () {
         $("#logged-out").toggle(!isLoggedIn);
 
         if (isLoggedIn) {
+            initProgressIndicator();
             client.invokeApi("getfbaccesstoken", {
                 body: null,
                 method: "post"
@@ -256,21 +288,25 @@ $(function () {
                 var responseJson = JSON.parse(responseString);
                 ostoslistaState.accessToken = responseJson.accessToken;
                 FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
+                    cancelProgressIndicator();
+                    ostoslistaState.userId = "Facebook:" + response.id;
                     ostoslistaState.userName = response.name;
                     $("#login-name").text(response.name);
                     refreshLists();
                     $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
                 });
             }, handleError);
-        }
-        else
-        {
+        } else {
             $('input, button, div#xdiv').not('#log-in').attr('disabled', 'disabled').addClass('disabled-ui');
         }
     }
 
     function logIn() {
-        client.login("facebook").then(refreshAuthDisplay, function (error) {
+        initProgressIndicator();
+        client.login("facebook").then(function () {
+            cancelProgressIndicator();
+            refreshAuthDisplay();
+        }, function (error) {
             alert(error);
         });
     }
@@ -281,6 +317,23 @@ $(function () {
         refreshAuthDisplay();
         $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
         closeAllPanels();
+    }
+
+    function initProgressIndicator() {
+        progressState.timer = setTimeout(showProgressIndicator, 200);
+    }
+
+    function showProgressIndicator() {
+        $('#progress').slideDown(100);
+    }
+
+    function cancelProgressIndicator() {
+        if (progressState.timer) {
+            clearTimeout(progressState.timer);
+            progressState.timer = null;
+        }
+
+        $('#progress').slideUp(100);
     }
 
     function openAddListPanel() {
@@ -303,20 +356,18 @@ $(function () {
     }
 
     function closeAddFriendPanel(evt) {
+        $('#new-friend-name').val('');
         $('#add-friend-panel').hide();
-        if (evt)
-        {
+        if (evt) {
             evt.preventDefault();
         }
     }
 
-    function hideFriendsPopup()
-    {
+    function hideFriendsPopup() {
         $('friends-popup').empty().hide();
     }
 
-    function closeAllPanels()
-    {
+    function closeAllPanels() {
         closeAddListPanel();
         closeAddFriendPanel();
         hideFriendsPopup();

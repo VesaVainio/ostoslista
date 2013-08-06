@@ -133,6 +133,8 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Content Include="channel.html" />
     <Content Include="Global.asax" />
+    <Content Include="images\progress-big.gif" />
+    <Content Include="images\progress.gif" />
     <Content Include="index.html" />
     <Content Include="less_styles.css">
       <DependentUpon>less_styles.less</DependentUpon>

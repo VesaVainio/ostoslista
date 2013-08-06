@@ -44,7 +44,7 @@
                     <div id="change-list">
                         Aktiivinen ostoslista: <select id="lists"></select>. <button id="add-new-list">Lisää uusi</button>
                         <button id="share-list">Jaa ostoslista Facebook-ystävän kanssa</button>
-                        <div id="add-list-panel">
+                        <div id="add-list-panel" style="display:none;">
                             <form id="add-list">
                                 <button id="cancel-add-list">Peruuta</button> <button type="submit">Lisää</button> 
                                 <div><input type="text" id="new-list-name" placeholder="Kirjoita uuden ostoslistan nimi" /></div>
@@ -53,14 +53,15 @@
                     </div>
                     <div id="sharing">
                         <div id="shared-friends" style="display:none;">Jaettu seuraavien ystävien kanssa: </div>
-                            <div id="add-friend-panel">
-                                <form id="add-friend">
-                                    <button id="cancel-add-friend">Peruuta</button>
-                                    <div><input type="text" id="new-friend-name" placeholder="Kirjoita Facebook-ystävän nimi" /></div>
-                                    <div id="friends-popup" style="display:none;"></div>
-                                </form>
-                            </div>
+                        <div id="add-friend-panel">
+                            <form id="add-friend">
+                                <button id="cancel-add-friend">Peruuta</button>
+                                <div><input type="text" id="new-friend-name" placeholder="Kirjoita Facebook-ystävän nimi" /></div>
+                                <div id="friends-popup" style="display:none;"></div>
+                            </form>
                         </div>
+                    </div>
+                    <div id="progress" style="display:none;"><img src="images/progress.gif" width="16" height="16" alt="Sivun päivityksen animaatio" /></div>
                     <form id='add-item'>
                         <button type='submit'>Lisää</button>
                         <div><input type='text' id='new-item-text' placeholder='Kirjoita lisättävä asia' /></div>
