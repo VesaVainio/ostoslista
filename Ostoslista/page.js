@@ -47,7 +47,7 @@ $(function () {
 
     // Read current data and rebuild UI.
     // If you plan to generate complex UIs like this, consider using a JavaScript templating library.
-    function refreshTodoItems() {
+    function refreshTodoItems(callback) {
         var listId = $('#lists option:selected').val();
 
         // listId is needed both for where and read. In where it filters the results, in read it is used for checking permissions.
@@ -64,6 +64,7 @@ $(function () {
 
             $('#todo-items').empty().append(listItems).toggle(listItems.length > 0);
             $('#summary').html('<strong>' + todoItems.length + '</strong> asiaa listalla');
+            typeof callback === 'function' && callback();
         }, handleError);
     }
 
@@ -116,7 +117,10 @@ $(function () {
             listId = $('#lists option:selected').val();
 
         if (itemText !== '') {
-            todoItemTable.insert({ text: itemText, complete: false, listId: listId }).then(refreshTodoItems, handleError);
+            initProgressIndicator();
+            todoItemTable.insert({ text: itemText, complete: false, listId: listId }).then(function () {
+                refreshTodoItems(function () { cancelProgressIndicator() });
+            }, handleError);
         }
 
         textbox.val('').focus();
@@ -280,35 +284,33 @@ $(function () {
 
         if (isLoggedIn) {
             initProgressIndicator();
-            client.invokeApi("getfbaccesstoken", {
-                body: null,
-                method: "post"
-            }).done(function (results) {
-                var responseString = results.response;
-                var responseJson = JSON.parse(responseString);
-                ostoslistaState.accessToken = responseJson.accessToken;
-                FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
-                    cancelProgressIndicator();
-                    ostoslistaState.userId = "Facebook:" + response.id;
-                    ostoslistaState.userName = response.name;
-                    $("#login-name").text(response.name);
-                    refreshLists();
-                    $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
-                });
-            }, handleError);
+            FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
+                cancelProgressIndicator();
+                ostoslistaState.userId = "Facebook:" + response.id;
+                ostoslistaState.userName = response.name;
+                $("#login-name").text(response.name);
+                refreshLists();
+                $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
+            });
         } else {
             $('input, button, div#xdiv').not('#log-in').attr('disabled', 'disabled').addClass('disabled-ui');
         }
     }
 
     function logIn() {
-        initProgressIndicator();
-        client.login("facebook").then(function () {
-            cancelProgressIndicator();
-            refreshAuthDisplay();
-        }, function (error) {
-            alert(error);
-        });
+        window.location.replace('https://www.facebook.com/dialog/oauth?client_id=307252376076816&redirect_uri=http%3A%2F%2Fostoslista.azurewebsites.net/index.html&response_type=token')
+    }
+
+    function handleLoginResponse() {
+        var frag = $.deparam.fragment();
+        if (frag.hasOwnProperty("access_token")) {
+            ostoslistaState.accessToken = frag.access_token;
+            client.login("facebook", { access_token: ostoslistaState.accessToken }).then(function () {
+                refreshAuthDisplay();
+            }, function (error) {
+                alert(error);
+            });
+        }
     }
 
     function logOut() {
@@ -376,13 +378,14 @@ $(function () {
     // On page init, fetch the data and set up event handlers
     $(function () {
         closeAllPanels();
+        handleLoginResponse();
         refreshAuthDisplay();
         $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
         $("#logged-out button").click(logIn);
         $("#logged-in button").click(logOut);
         $("#change-list button#add-new-list").click(openAddListPanel);
         $("#change-list button#cancel-add-list").click(closeAddListPanel);
-        $("button#share-list").click(openAddFriendPanel);
+        $("button#share-list, button#share-list-mobile").click(openAddFriendPanel);
         $("button#cancel-add-friend").click(closeAddFriendPanel);
     });
 });

@@ -16,7 +16,8 @@
 		      channelUrl: '//ostoslista.azurewebsites.net//channel.html', // Channel File
 		      status     : false, // check login status
 		      cookie     : false, // enable cookies to allow the server to access the session
-		      xfbml      : false  // parse XFBML
+		      xfbml      : false,  // parse XFBML
+              oauth      : true
 		    });
 	      };
 
@@ -44,6 +45,7 @@
                     <div id="change-list">
                         Aktiivinen ostoslista: <select id="lists"></select>. <button id="add-new-list">Lisää uusi</button>
                         <button id="share-list">Jaa ostoslista Facebook-ystävän kanssa</button>
+                        <button id="share-list-mobile">Jaa lista</button>
                         <div id="add-list-panel" style="display:none;">
                             <form id="add-list">
                                 <button id="cancel-add-list">Peruuta</button> <button type="submit">Lisää</button> 
@@ -79,6 +81,7 @@
 
         <script src='https://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.9.1.min.js'></script>
         <script src='https://ostoslista.azure-mobile.net/client/MobileServices.Web-1.0.0.min.js'></script>
+        <script src="Script/jquery.ba-bbq.min.js"></script>
         <script src='page.js'></script>
     </body>
 </html>

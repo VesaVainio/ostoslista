@@ -126,6 +126,9 @@ header #change-list {
   background-color: #71bcfa;
   width: 480px;
 }
+#share-list-mobile {
+  display: none;
+}
 #friends-popup {
   border: 1px solid black;
   background-color: white;
@@ -223,4 +226,32 @@ footer a {
   padding: 8px;
   display: inline-block;
   text-align: left;
+}
+@media all and (max-width: 600px) {
+  #wrapper {
+    padding: 4px;
+  }
+  header {
+    padding: 4px;
+  }
+  #add-list,
+  #add-friend {
+    margin-top: 8px;
+  }
+  #add-list button,
+  #add-friend button {
+    padding: 0 4px;
+    margin-left: 4px;
+  }
+  #share-list {
+    display: none;
+  }
+  #share-list-mobile {
+    display: inline-block;
+  }
+  #add-list-panel,
+  #add-friend-panel {
+    padding: 4px;
+    width: 97%;
+  }
 }
