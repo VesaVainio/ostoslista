@@ -1,11 +1,16 @@
 ﻿
 var ostoslistaState = { userName: '', userId: '', accessToken: '', friends: null, waitingForFriends: false };
-var progressState = { timer: null };
+var progressState = { timer: [], count: 0 };
 
 if (typeof String.prototype.startsWith != 'function') {
     String.prototype.startsWith = function (str) {
         return this.slice(0, str.length).toUpperCase() == str.toUpperCase();
     };
+}
+if (typeof String.prototype.capitalize != 'function') {
+    String.prototype.capitalize = function () {
+        return this.charAt(0).toUpperCase() + this.slice(1);
+    }
 }
 
 var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobile.net/', 'wFWmmDhjlWzQVQzuFTxIxRTKhdBrSx70'),
@@ -15,10 +20,11 @@ var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobi
 
 function refreshLists(callback) {
     var query = listPermissionTable.where({ userId: ostoslistaState.userId });
-    initProgressIndicator();
+    initProgressIndicator('refreshLists');
     query.read().then(function (listPermissionItems) {
         if (listPermissionItems.length == 0) {
-            listPermissionTable.insert({ listName: "OLETUS", userName: ostoslistaState.userName, listId: guid() }).then(refreshLists, handleError);
+            listPermissionTable.insert({ listName: "OLETUS", userName: ostoslistaState.userName, listId: guid() }).then(
+                refreshLists, handleError);
             return;
         }
 
@@ -31,7 +37,7 @@ function refreshLists(callback) {
 
         refreshTodoItems();
         refreshSharedFriends();
-        cancelProgressIndicator();
+        cancelProgressIndicator('refreshLists');
     }, handleError);
 }
 
@@ -50,6 +56,7 @@ function refreshTodoItems(callback) {
     // listId is needed both for where and read. In where it filters the results, in read it is used for checking permissions.
     var query = todoItemTable.where({ listId: listId });
 
+    initProgressIndicator('refreshItems');
     query.read({ listId: listId }).then(function (todoItems) {
         var listItems = $.map(todoItems, function (item) {
             return $('<li>')
@@ -61,15 +68,17 @@ function refreshTodoItems(callback) {
 
         $('#todo-items').empty().append(listItems).toggle(listItems.length > 0);
         $('#summary').html('<strong>' + todoItems.length + '</strong> asiaa listalla');
+        cancelProgressIndicator('refreshItems');
         typeof callback === 'function' && callback();
     }, handleError);
 }
 
-function refreshSharedFriends() {
+function refreshSharedFriends(callback) {
     var listId = $('#lists option:selected').val();
     var query = listPermissionTable.where({ listId: listId });
     var sharedFriends = $('#shared-friends');
 
+    initProgressIndicator('refreshFriends');
     query.read().then(function (listPermissions) {
         ostoslistaState.listPermissions = listPermissions;
 
@@ -94,12 +103,16 @@ function refreshSharedFriends() {
         } else {
             sharedFriends.empty().hide();
         }
+        
+        cancelProgressIndicator('refreshFriends');
+        typeof callback === 'function' && callback();
     });
 }
 
 function handleError(error) {
     var text = error + (error.request ? ' - ' + error.request.status : '');
     $('#errorlog').append($('<li>').text(text));
+    $('#progress').slideUp(100);
 }
 
 function getTodoItemId(formElement) {
@@ -152,20 +165,21 @@ function processFriendsData(data) {
     });
 }
 
-function refreshAuthDisplay() {
+function refreshAuthDisplay(callback) {
     var isLoggedIn = client.currentUser !== null;
     $("#logged-in").toggle(isLoggedIn);
     $("#logged-out").toggle(!isLoggedIn);
 
     if (isLoggedIn) {
-        initProgressIndicator();
+        initProgressIndicator('fbName');
         FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
-            cancelProgressIndicator();
             ostoslistaState.userId = "Facebook:" + response.id;
             ostoslistaState.userName = response.name;
             $("#login-name").text(response.name);
             refreshLists();
             $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
+            cancelProgressIndicator('fbName');
+            typeof callback === 'function' && callback();
         });
     } else {
         $('input, button, div#xdiv').not('#log-in').attr('disabled', 'disabled').addClass('disabled-ui');
@@ -191,9 +205,9 @@ function handleLoginResponse() {
         }, handleError);
     } else if (localStorage.accessToken) {
         ostoslistaState.accessToken = localStorage.accessToken;
-        initProgressIndicator();
+        initProgressIndicator('clientLogin');
         client.login("facebook", { access_token: ostoslistaState.accessToken }).then(function () {
-            refreshAuthDisplay();
+            refreshAuthDisplay(function () { cancelProgressIndicator('clientLogin'); });
         }, function (error) {
             alert(error);
         });
@@ -208,21 +222,27 @@ function logOut() {
     closeAllPanels();
 }
 
-function initProgressIndicator() {
-    progressState.timer = setTimeout(showProgressIndicator, 200);
+function initProgressIndicator(timerKey) {
+    progressState.timer[timerKey] = setTimeout(showProgressIndicator, 200);
+    progressState.count++;
 }
 
 function showProgressIndicator() {
-    $('#progress').slideDown(100);
+    if (progressState.count > 0) {
+        $('#progress').slideDown(100);
+    }
 }
 
-function cancelProgressIndicator() {
-    if (progressState.timer) {
-        clearTimeout(progressState.timer);
-        progressState.timer = null;
+function cancelProgressIndicator(timerKey) {
+    if (progressState.timer[timerKey]) {
+        clearTimeout(progressState.timer[timerKey]);
+        delete progressState.timer[timerKey];
+        progressState.count--;
     }
 
-    $('#progress').slideUp(100);
+    if (progressState.count == 0) {
+        $('#progress').slideUp(100);
+    }
 }
 
 function openAddListPanel() {
@@ -267,13 +287,13 @@ $(function () {
     // Handle inserting new item
     $('#add-item').submit(function(evt) {
         var textbox = $('#new-item-text'),
-            itemText = textbox.val(),
+            itemText = textbox.val().capitalize(),
             listId = $('#lists option:selected').val();
 
         if (itemText !== '') {
-            initProgressIndicator();
+            initProgressIndicator('insertItem');
             todoItemTable.insert({ text: itemText, complete: false, listId: listId }).then(function () {
-                refreshTodoItems(function () { cancelProgressIndicator() });
+                refreshTodoItems(function () { cancelProgressIndicator('insertItem') });
             }, handleError);
         }
 
@@ -300,10 +320,8 @@ $(function () {
     });
 
     $('#lists').change(function (evt) {
-        initProgressIndicator();
         refreshTodoItems();
         refreshSharedFriends();
-        cancelProgressIndicator();
         evt.preventDefault();
     });
 
@@ -320,7 +338,10 @@ $(function () {
 
     // Handle delete
     $(document.body).on('click', '.item-delete', function () {
-        todoItemTable.del({ id: getTodoItemId(this) }).then(refreshTodoItems, handleError);
+        initProgressIndicator('delItem');
+        todoItemTable.del({ id: getTodoItemId(this) }).then(function () {
+            refreshTodoItems(function () { cancelProgressIndicator('delItem'); });
+        }, handleError);
     });
 
     $('#friends-popup').on('click', 'div#rowdiv', function () {
@@ -328,6 +349,7 @@ $(function () {
         var friendsArray = ostoslistaState.friends;
         var friendName;
 
+        initProgressIndicator('insertFriend');
         for (var i = 0; i < friendsArray.length; i++) {
             if (friendsArray[i].id === id) {
                 friendName = friendsArray[i].name;
@@ -343,18 +365,17 @@ $(function () {
             userId: 'Facebook:' + id,
             userName: friendName,
             listId: listId
-        }).then(refreshSharedFriends, handleError);
+        }).then(function () {
+            refreshSharedFriends(function () { cancelProgressIndicator('insertFriend'); });
+        }, handleError);
     });
 
     $('#shared-friends').on('click', 'div#xdiv', function () {
         var id = $(this).attr('data-permission-id');
 
-        initProgressIndicator();
-        listPermissionTable.del({
-            id: id
-        }).then(function () {
-            refreshSharedFriends();
-            cancelProgressIndicator();
+        initProgressIndicator('delFriend');
+        listPermissionTable.del({ id: id }).then(function () {
+            refreshSharedFriends(function () { cancelProgressIndicator('delFriend'); });
         }, handleError);
     });
 
@@ -385,9 +406,10 @@ $(function () {
     // On page init, fetch the data and set up event handlers
     $(function () {
         closeAllPanels();
-        handleLoginResponse();
-        refreshAuthDisplay();
+        $("#logged-in").hide();
+        $('input, button, div#xdiv').not('#log-in').attr('disabled', 'disabled').addClass('disabled-ui');
         $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
+        handleLoginResponse();
         $("#logged-out button").click(logIn);
         $("#logged-in button").click(logOut);
         $("#change-list button#add-new-list").click(openAddListPanel);
