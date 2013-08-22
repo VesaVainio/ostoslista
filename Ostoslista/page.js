@@ -112,7 +112,7 @@ function refreshSharedFriends(callback) {
 function handleError(error) {
     var text = error + (error.request ? ' - ' + error.request.status : '');
     $('#errorlog').append($('<li>').text(text));
-    $('#progress').slideUp(100);
+    cancelProgressIndicator();
 }
 
 function getTodoItemId(formElement) {
@@ -234,11 +234,12 @@ function showProgressIndicator() {
 }
 
 function cancelProgressIndicator(timerKey) {
-    if (progressState.timer[timerKey]) {
+    if (timerKey && progressState.timer[timerKey]) {
         clearTimeout(progressState.timer[timerKey]);
         delete progressState.timer[timerKey];
-        progressState.count--;
     }
+
+    progressState.count--;
 
     if (progressState.count == 0) {
         $('#progress').slideUp(100);
