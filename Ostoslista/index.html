@@ -34,6 +34,7 @@
             <article>
                 <header>
                     <h1>Ostoslista</h1>
+                    <button id="hidden-default-button" tabindex="-1" style="position:absolute; height: 0px; width: 0px; border: none; padding: 0"></button>
                     <div id="logged-in">
                         Tervetuloa, <span id="login-name"></span>.
                         <button id="log-out">Kirjaudu ulos</button>
@@ -42,10 +43,13 @@
                         Kirjaudu sisään Facebook-tunnuksellasi, jotta voit käyttää ostoslistoja.
                         <button id="log-in">Kirjaudu sisään</button>
                     </div>
-                    <div id="change-list">
-                        Aktiivinen ostoslista: <select id="lists"></select>. <button id="add-new-list">Lisää uusi</button>
+                    <div id="change-list">Aktiivinen ostoslista: <select id="lists"></select>.
+                        <div id="list-buttons">
+                        <button id="add-new-list">Lisää uusi</button>
                         <button id="share-list">Jaa ostoslista Facebook-ystävän kanssa</button>
                         <button id="share-list-mobile">Jaa lista</button>
+                        <div id="progress-container"><div id="progress" style="display:none;"><img src="images/progress.gif" width="16" height="16" alt="Sivun päivityksen animaatio" /></div></div>
+                        </div>
                         <div id="add-list-panel" style="display:none;">
                             <form id="add-list">
                                 <button id="cancel-add-list">Peruuta</button> <button type="submit">Lisää</button> 
@@ -63,7 +67,7 @@
                             </form>
                         </div>
                     </div>
-                    <div id="progress" style="display:none;"><img src="images/progress.gif" width="16" height="16" alt="Sivun päivityksen animaatio" /></div>
+                    
                     <form id='add-item'>
                         <button type='submit'>Lisää</button>
                         <div><input type='text' id='new-item-text' placeholder='Kirjoita lisättävä asia' /></div>
@@ -72,6 +76,10 @@
                 
                 <ul id='todo-items'></ul>
                 <p id='summary'>Ladataan...</p>
+                <div id="bottom-buttons">
+                    <button id="select-all">Merkitse kaikki</button>
+                    <button id="delete-selected">Poista merkityt</button>
+                </div>
             </article>
 
             <footer>

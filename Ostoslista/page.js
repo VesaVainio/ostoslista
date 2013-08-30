@@ -15,7 +15,6 @@ if (typeof String.prototype.capitalize != 'function') {
 
 var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobile.net/', 'wFWmmDhjlWzQVQzuFTxIxRTKhdBrSx70'),
     todoItemTable = client.getTable('todoitem'),
-    listTable = client.getTable('list'),
     listPermissionTable = client.getTable('listpermission');
 
 function refreshLists(callback) {
@@ -79,7 +78,7 @@ function refreshSharedFriends(callback) {
     var sharedFriends = $('#shared-friends');
 
     initProgressIndicator('refreshFriends');
-    query.read().then(function (listPermissions) {
+    query.read({ listId: listId }).then(function (listPermissions) {
         ostoslistaState.listPermissions = listPermissions;
 
         if (listPermissions.length > 1) {
@@ -229,7 +228,7 @@ function initProgressIndicator(timerKey) {
 
 function showProgressIndicator() {
     if (progressState.count > 0) {
-        $('#progress').slideDown(100);
+        $('#progress').fadeIn(100);
     }
 }
 
@@ -242,8 +241,14 @@ function cancelProgressIndicator(timerKey) {
     progressState.count--;
 
     if (progressState.count == 0) {
-        $('#progress').slideUp(100);
+        $('#progress').fadeOut(100);
     }
+}
+
+function selectAll() {
+    var checkboxes = $('#todo-items input[type=checkbox]');
+    var state = $('#todo-items input:checked').length < checkboxes.length;
+    checkboxes.prop('checked', state);
 }
 
 function openAddListPanel() {
@@ -327,20 +332,28 @@ $(function () {
     });
 
     // Handle update
-    $(document.body).on('change', '.item-text', function() {
+    $(document.body).on('change', '.item-text', function (event) {
         var newText = $(this).val();
-        todoItemTable.update({ id: getTodoItemId(this), text: newText }).then(null, handleError);
+        var listId = $('#lists option:selected').val();
+        todoItemTable.update({ id: getTodoItemId(this), text: newText, listId: listId }).then(
+            function () { alert('item päivitetty!'); }, handleError);
     });
+
+    function processTextChange(element) {
+
+    }
 
     $(document.body).on('change', '.item-complete', function() {
         var isComplete = $(this).prop('checked');
-        todoItemTable.update({ id: getTodoItemId(this), complete: isComplete }).then(refreshTodoItems, handleError);
+        var listId = $('#lists option:selected').val();
+        todoItemTable.update({ id: getTodoItemId(this), complete: isComplete, listId: listId }).then(refreshTodoItems, handleError);
     });
 
     // Handle delete
     $(document.body).on('click', '.item-delete', function () {
+        var listId = $('#lists option:selected').val();
         initProgressIndicator('delItem');
-        todoItemTable.del({ id: getTodoItemId(this) }).then(function () {
+        todoItemTable.del({ id: getTodoItemId(this), listId: listId }).then(function () {
             refreshTodoItems(function () { cancelProgressIndicator('delItem'); });
         }, handleError);
     });
@@ -417,5 +430,6 @@ $(function () {
         $("#change-list button#cancel-add-list").click(closeAddListPanel);
         $("button#share-list, button#share-list-mobile").click(openAddFriendPanel);
         $("button#cancel-add-friend").click(closeAddFriendPanel);
+        $("button#select-all").click(selectAll);
     });
 });

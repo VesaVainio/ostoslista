@@ -73,7 +73,8 @@ header button {
 }
 header #logged-in,
 header #logged-out,
-header #change-list {
+header #change-list,
+header #list-buttons {
   margin-top: 12px;
 }
 #summary {
@@ -128,6 +129,16 @@ header #change-list {
 }
 #share-list-mobile {
   display: none;
+}
+#list-buttons #progress-container {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 2px 0 0 0;
+}
+#list-buttons #progress {
+  margin: 0;
 }
 #friends-popup {
   border: 1px solid black;
@@ -210,6 +221,12 @@ header #change-list {
   border-color: #aaa;
   background-color: #FFC;
 }
+#bottom-buttons {
+  padding: 0 0 20px 20px;
+}
+#bottom-buttons button {
+  padding: 2px 10px;
+}
 /* Footer */
 footer {
   text-align: center;
@@ -253,5 +270,8 @@ footer a {
   #add-friend-panel {
     padding: 4px;
     width: 97%;
+  }
+  #bottom-buttons {
+    padding: 0 0 4px 4px;
   }
 }
