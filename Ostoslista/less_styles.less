@@ -31,12 +31,14 @@ input[type=text], input:not([type]) { padding: 0 10px; -ms-text-overflow: ellips
 article { background-color: white; .RoundedBox }
 
 header { 
-    background-color: @BlueBackColor; padding: 20px; border-top-left-radius: 10px; border-top-right-radius: 10px; 
-    h1 { text-transform: uppercase; font-weight: normal; color: #545353; font-size: 28px; }
+    background-color: @BlueBackColor; padding: 20px 20px 12px 20px; border-top-left-radius: 10px; border-top-right-radius: 10px; 
+    h1 { text-transform: uppercase; font-weight: normal; color: #545353; font-size: 28px; float: left; margin-bottom: 8px; }
     h2 { text-transform: uppercase; font-weight: normal; color: white; font-size: 20px; }
     div { margin: 6px 0; }
     button { padding: 2px @ButtonHorizPadding; }
-    #logged-in, #logged-out, #change-list, #list-buttons { margin-top: 12px; }
+    #logged-out, #change-list, #list-buttons { margin-top: 12px; }
+    #logged-in { float: right; }
+    #change-list { clear: both; }
 }
 #summary { text-align: center; padding: 8px 0; }
 
@@ -51,7 +53,7 @@ header {
     }
 }
 #add-item {
-    margin: 17px 0 5px 0;
+    margin: 14px 0 5px 0;
 }
 #add-list, #add-friend {
     margin: 5px 0 5px 0;
@@ -151,8 +153,9 @@ header {
 .item-text:focus, .item-text:hover { border-color: #aaa; background-color: #FFC; }
 
 #bottom-buttons {
-    padding: 0 0 20px 20px;
+    padding: 12px 20px 20px 20px;
     button { padding: 2px @ButtonHorizPadding; }
+    background-color: @BlueBackColor;
 }
 
 /* Footer */
@@ -162,9 +165,16 @@ footer a { color: #666; display: block; }
 
 @media all and (max-width: 600px) {
     #wrapper { padding: 4px; }
-    header { padding: 4px; }
-    #add-list, #add-friend { margin-top: 8px;  
+    header { 
+        padding: 4px 8px;
+    }
+    #add-list, #add-friend { 
+        margin-top: 8px;  
         button { padding: 0 4px; margin-left: 4px; }
+    }
+
+    #add-item {
+        margin: 10px 0 5px 0;
     }
 
     // switch to mobile version of the long button text
@@ -181,6 +191,10 @@ footer a { color: #666; display: block; }
     }
 
     #bottom-buttons {
-        padding: 0 0 4px 4px;
+        padding: 8px;
+    }
+
+    header button, #bottom-buttons button {
+        padding: 4px 12px;
     }
 }
