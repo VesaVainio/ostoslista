@@ -192,6 +192,7 @@ function logIn() {
 function handleLoginResponse() {
     var frag = $.deparam.fragment();
     if (frag.hasOwnProperty("access_token")) {
+        $('#summary').html('<strong>Kirjautumistietoja käsitellään...</strong>');
         client.invokeApi("getfbaccesstoken", {
             body: null,
             method: "post",
@@ -203,6 +204,7 @@ function handleLoginResponse() {
             window.location.replace('index.html');
         }, handleError);
     } else if (localStorage.accessToken) {
+        $('#summary').html('<strong>Kirjautumistietoja käsitellään...</strong>');
         ostoslistaState.accessToken = localStorage.accessToken;
         initProgressIndicator('clientLogin');
         client.login("facebook", { access_token: ostoslistaState.accessToken }).then(function () {
@@ -210,6 +212,8 @@ function handleLoginResponse() {
         }, function (error) {
             alert(error);
         });
+    } else {
+        $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
     }
 }
 
@@ -248,7 +252,31 @@ function cancelProgressIndicator(timerKey) {
 function selectAll() {
     var checkboxes = $('#todo-items input[type=checkbox]');
     var state = $('#todo-items input:checked').length < checkboxes.length;
-    checkboxes.prop('checked', state);
+    var listId = $('#lists option:selected').val();
+    initProgressIndicator('markAllComplete');
+    client.invokeApi("markallcomplete", {
+        body: null,
+        method: "post",
+        parameters: { listId: listId, state: state }
+    }).done(function (results) {
+        refreshTodoItems();
+        cancelProgressIndicator('markAllComplete');
+    }, handleError);
+}
+
+function deleteSelected() {
+    if (confirm('Poistetaanko merkityt asiat?')) {
+        var listId = $('#lists option:selected').val();
+        initProgressIndicator('deleteSelected');
+        client.invokeApi("deletedoneitems", {
+            body: null,
+            method: "post",
+            parameters: { listId: listId }
+        }).done(function (results) {
+            refreshTodoItems();
+            cancelProgressIndicator('deleteSelected');
+        }, handleError);
+    }
 }
 
 function openAddListPanel() {
@@ -431,5 +459,6 @@ $(function () {
         $("button#share-list, button#share-list-mobile").click(openAddFriendPanel);
         $("button#cancel-add-friend").click(closeAddFriendPanel);
         $("button#select-all").click(selectAll);
+        $("button#delete-selected").click(deleteSelected);
     });
 });
