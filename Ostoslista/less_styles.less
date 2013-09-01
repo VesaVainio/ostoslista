@@ -26,7 +26,7 @@ button.disabled-ui:hover { color: @ButtonTextGray; background-color: @ButtonBack
 input[type=text], input:not([type]) { padding: 0 10px; -ms-text-overflow: ellipsis; -o-text-overflow: ellipsis; text-overflow: ellipsis; }
 
 /* Main page structure and masthead style */
-#wrapper { max-width: 800px; margin: auto; padding: 20px; }
+#wrapper { max-width: 800px; min-width: 200px; margin: auto; padding: 20px; }
 
 article { background-color: white; .RoundedBox }
 
@@ -38,7 +38,7 @@ header {
     button { padding: 2px @ButtonHorizPadding; }
     #logged-out, #change-list, #list-buttons { margin-top: 12px; }
     #logged-in { float: right; }
-    #change-list { clear: both; }
+    #change-list, #logged-out { clear: both; }
 }
 #summary { text-align: center; padding: 8px 0; }
 
@@ -69,7 +69,7 @@ header {
     width: 480px;
 }
 
-#share-list-mobile {
+#share-list-mobile, #log-out-mobile {
     display: none;
 }
 
@@ -184,6 +184,12 @@ footer a { color: #666; display: block; }
     #share-list-mobile {
         display: inline-block;
     }
+    #log-out {
+        display: none;
+    }
+    #log-out-mobile {
+        display: inline-block;
+    }
 
     #add-list-panel, #add-friend-panel {
         padding: 4px;
@@ -196,5 +202,11 @@ footer a { color: #666; display: block; }
 
     header button, #bottom-buttons button {
         padding: 4px 12px;
+    }
+}
+
+@media all and (max-width: 430px) {
+    #logged-in span {
+        display: none;
     }
 }

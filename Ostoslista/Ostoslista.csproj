@@ -144,6 +144,7 @@
     </Content>
     <Content Include="page.js" />
     <Content Include="Script\jquery.ba-bbq.min.js" />
+    <Content Include="Script\jquery.color-2.1.2.min.js" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>

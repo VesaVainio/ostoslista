@@ -363,18 +363,21 @@ $(function () {
     $(document.body).on('change', '.item-text', function (event) {
         var newText = $(this).val();
         var listId = $('#lists option:selected').val();
-        todoItemTable.update({ id: getTodoItemId(this), text: newText, listId: listId }).then(
-            function () { alert('item päivitetty!'); }, handleError);
+        var liElement = $(this).closest('li');
+        liElement.animate({ backgroundColor: "#F5DADF" }, 100);
+        todoItemTable.update({ id: getTodoItemId(this), text: newText, listId: listId }).then(function () {
+            liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
+        }, handleError);
     });
-
-    function processTextChange(element) {
-
-    }
 
     $(document.body).on('change', '.item-complete', function() {
         var isComplete = $(this).prop('checked');
         var listId = $('#lists option:selected').val();
-        todoItemTable.update({ id: getTodoItemId(this), complete: isComplete, listId: listId }).then(refreshTodoItems, handleError);
+        var liElement = $(this).closest('li');
+        liElement.animate({ backgroundColor: "#F5DADF" }, 100);
+        todoItemTable.update({ id: getTodoItemId(this), complete: isComplete, listId: listId }).then(function () {
+            liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
+        }, handleError);
     });
 
     // Handle delete

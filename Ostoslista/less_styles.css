@@ -39,6 +39,7 @@ input:not([type]) {
 /* Main page structure and masthead style */
 #wrapper {
   max-width: 800px;
+  min-width: 200px;
   margin: auto;
   padding: 20px;
 }
@@ -81,7 +82,8 @@ header #list-buttons {
 header #logged-in {
   float: right;
 }
-header #change-list {
+header #change-list,
+header #logged-out {
   clear: both;
 }
 #summary {
@@ -134,7 +136,8 @@ header #change-list {
   background-color: #71bcfa;
   width: 480px;
 }
-#share-list-mobile {
+#share-list-mobile,
+#log-out-mobile {
   display: none;
 }
 #list-buttons #progress-container {
@@ -277,6 +280,12 @@ footer a {
   #share-list-mobile {
     display: inline-block;
   }
+  #log-out {
+    display: none;
+  }
+  #log-out-mobile {
+    display: inline-block;
+  }
   #add-list-panel,
   #add-friend-panel {
     padding: 4px;
@@ -288,5 +297,10 @@ footer a {
   header button,
   #bottom-buttons button {
     padding: 4px 12px;
+  }
+}
+@media all and (max-width: 430px) {
+  #logged-in span {
+    display: none;
   }
 }
