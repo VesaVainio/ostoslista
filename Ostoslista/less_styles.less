@@ -12,9 +12,11 @@
 .GrayBorder () {
     border: 1px solid #999;
 }
-.SlightlyRoundedBorders
-{
+.SlightlyRoundedBorders () {
     border-radius: 4px;
+}
+.NonListButtonPadding () {
+    padding: 4px 12px;
 }
 
 /* Reset and define common styles */
@@ -35,12 +37,15 @@ header {
     h1 { text-transform: uppercase; font-weight: normal; color: #545353; font-size: 28px; float: left; margin-bottom: 8px; }
     h2 { text-transform: uppercase; font-weight: normal; color: white; font-size: 20px; }
     div { margin: 6px 0; }
-    button { padding: 2px @ButtonHorizPadding; }
+    button { .NonListButtonPadding }
     #logged-out, #change-list, #list-buttons { margin-top: 12px; }
     #logged-in { float: right; }
     #change-list, #logged-out { clear: both; }
 }
 #summary { text-align: center; padding: 8px 0; }
+
+#login-picture img { width: 26px; height: 26px; vertical-align: bottom; }
+#login-name { padding-right: 8px; }
 
 /* "Add new" form */
 #add-item, #add-list, #add-friend { 
@@ -154,7 +159,7 @@ header {
 
 #bottom-buttons {
     padding: 12px 20px 20px 20px;
-    button { padding: 2px @ButtonHorizPadding; }
+    button { .NonListButtonPadding }
     background-color: @BlueBackColor;
 }
 
@@ -199,14 +204,10 @@ footer a { color: #666; display: block; }
     #bottom-buttons {
         padding: 8px;
     }
-
-    header button, #bottom-buttons button {
-        padding: 4px 12px;
-    }
 }
 
 @media all and (max-width: 430px) {
-    #logged-in span {
+    #logged-in #login-name {
         display: none;
     }
 }
