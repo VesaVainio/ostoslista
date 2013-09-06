@@ -1,5 +1,5 @@
 ﻿
-var ostoslistaState = { friends: null, waitingForFriends: false };
+var ostoslistaState = { userId: '', facebookId: '', username: '', accessToken: '', friends: null, waitingForFriends: false };
 var progressState = { timer: [], count: 0 };
 
 if (typeof String.prototype.startsWith != 'function') {
@@ -18,11 +18,12 @@ var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobi
     listPermissionTable = client.getTable('listpermission');
 
 function refreshLists(callback) {
-    var query = listPermissionTable.where({ userId: localStorage.userId });
+    var query = listPermissionTable.where({ userId: ostoslistaState.userId });
     initProgressIndicator('refreshLists');
     query.read().then(function (listPermissionItems) {
         if (listPermissionItems.length == 0) {
-            listPermissionTable.insert({ listName: "OLETUS", userName: localStorage.userName, listId: guid() }).then(
+            alert('Listoja ei löydy, luodaan lista OLETUS');
+            listPermissionTable.insert({ listName: "OLETUS", userName: ostoslistaState.username, listId: guid() }).then(
                 refreshLists, handleError);
             return;
         }
@@ -88,7 +89,7 @@ function refreshSharedFriends(callback) {
             for (var i = 0; i < listPermissions.length; i++) {
                 var friendId = listPermissions[i].userId;
 
-                if (friendId !== localStorage.userId) {
+                if (friendId !== ostoslistaState.userId) {
                     var friendName = listPermissions[i].userName;
                     var permissionId = listPermissions[i].id;
 
@@ -170,22 +171,28 @@ function refreshAuthDisplay(callback) {
     $("#logged-out").toggle(!isLoggedIn);
 
     if (isLoggedIn) {
-        if (!localStorage.userId || !localStorage.facebookId || !localStorage.userName) {
+        if (!getFromStore('userId') || !getFromStore('facebookId') || !getFromStore('userName')) {
             initProgressIndicator('fbName');
-            FB.api('/me?access_token=' + localStorage.accessToken, function (response) {
-                localStorage.userId = "Facebook:" + response.id;
-                localStorage.facebookId = response.id;
-                localStorage.userName = response.name;
-                $("#login-name").text(localStorage.userName);
-                $("#login-picture").empty().append($('<img src="http://graph.facebook.com/' + localStorage.facebookId + '/picture">'));
+            FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
+                putToStore('userId', "Facebook:" + response.id);
+                putToStore('facebookId', response.id);
+                putToStore('userName', response.name);
+                ostoslistaState.userId = "Facebook:" + response.id;
+                ostoslistaState.facebookId = response.id;
+                ostoslistaState.username = response.name;
+                $("#login-name").text(ostoslistaState.username);
+                $("#login-picture").empty().append($('<img src="http://graph.facebook.com/' + ostoslistaState.facebookId + '/picture">'));
                 refreshLists();
                 $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
                 cancelProgressIndicator('fbName');
                 typeof callback === 'function' && callback();
             });
         } else {
-            $("#login-name").text(localStorage.userName);
-            $("#login-picture").empty().append($('<img src="http://graph.facebook.com/' + localStorage.facebookId + '/picture">'));
+            ostoslistaState.userId = getFromStore('userId');
+            ostoslistaState.facebookId = getFromStore('facebookId');
+            ostoslistaState.username = getFromStore('userName');
+            $("#login-name").text(ostoslistaState.username);
+            $("#login-picture").empty().append($('<img src="http://graph.facebook.com/' + ostoslistaState.facebookId + '/picture">'));
             refreshLists();
             $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
             typeof callback === 'function' && callback();
@@ -199,20 +206,51 @@ function handleLoginResponse() {
     var frag = $.deparam.fragment();
     if (frag.hasOwnProperty("access_token")) {
         $('#summary').html('<strong>Kirjautumistietoja käsitellään...</strong>');
-        client.invokeApi("getfbaccesstoken", {
-            body: null,
-            method: "post",
-            parameters: { accessToken: frag.access_token }
-        }).done(function (results) {
-            var responseString = results.response;
+
+        $.support.cors = true;
+        var request = $.ajax({
+            url: "https://ostoslista.azure-mobile.net/api/getfbaccesstoken?accessToken=" + frag.access_token,
+            type: "GET",
+            headers: { "X-ZUMO-APPLICATION": "wFWmmDhjlWzQVQzuFTxIxRTKhdBrSx70", 
+                       "X-ZUMO-INSTALLATION-ID": "9f0c5084-2261-160c-9472-3fa774fb7a7b",
+                       "X-ZUMO-VERSION": "ZUMO/1.0 (lang=Web; os=--; os_version=--; arch=--; version=1.0.10613.0)" }
+        });
+        request.done(function (data) {
+            var responseString = data;
             var responseJson = JSON.parse(responseString);
-            localStorage.accessToken = responseJson.accessToken;
+            ostoslistaState.accessToken = responseJson.accessToken;
+            putToStore('accessToken', responseJson.accessToken);
             window.location.replace('index.html');
-        }, handleError);
-    } else if (localStorage.accessToken) {
+        });
+
+        request.fail(function (jqXHR, textStatus, errorThrown) {
+            alert(textStatus + ": " + errorThrown);
+            client.login("facebook", { access_token: frag.access_token }).then(function () {
+                ostoslistaState.accessToken = frag.access_token;
+                putToStore('accessToken', ostoslistaState.accessToken);
+                refreshAuthDisplay(function () { cancelProgressIndicator('clientLogin'); });
+            }, function (error) {
+                alert("client login error: " + error);
+            });
+        });
+
+        //client.invokeApi("getfbaccesstoken", {
+        //    body: null,
+        //    method: "get",
+        //    parameters: { accessToken: frag.access_token }
+        //}).done(function (results) {
+        //    alert('getfbaccesstoken got response');
+        //    var responseString = results.response;
+        //    var responseJson = JSON.parse(responseString);
+        //    ostoslistaState.accessToken = responseJson.accessToken;
+        //    putToStore('accessToken', responseJson.accessToken);
+        //    window.location.replace('index.html');
+        //}, handleError);
+    } else if (getFromStore('accessToken')) {
         $('#summary').html('<strong>Kirjautumistietoja käsitellään...</strong>');
+        ostoslistaState.accessToken = getFromStore('accessToken');
         initProgressIndicator('clientLogin');
-        client.login("facebook", { access_token: localStorage.accessToken }).then(function () {
+        client.login("facebook", { access_token: ostoslistaState.accessToken }).then(function () {
             refreshAuthDisplay(function () { cancelProgressIndicator('clientLogin'); });
         }, function (error) {
             alert(error);
@@ -220,6 +258,16 @@ function handleLoginResponse() {
     } else {
         $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
     }
+}
+
+function putToStore(key, item) {
+    //localStorage[key] = item;
+    amplify.store(key, item);
+}
+
+function getFromStore(key) {
+    //return localStorage[key];
+    return amplify.store(key);
 }
 
 function logIn() {
@@ -303,7 +351,7 @@ function openAddFriendPanel() {
     $('#add-friend-panel').show();
     $('#new-friend-name').focus();
     if (!ostoslistaState.friends) {
-        FB.api('/me/friends?fields=id,name&access_token=' + localStorage.accessToken, function (response) {
+        FB.api('/me/friends?fields=id,name&access_token=' + ostoslistaState.accessToken, function (response) {
             processFriendsData(response.data);
         });
     }
@@ -353,7 +401,7 @@ $(function () {
             listId = $('#lists option:selected').val();
         if (itemText !== '') {
             var newGuid = guid();
-            listPermissionTable.insert({ listName: itemText, userName: localStorage.userName, listId: newGuid }).then(function () {
+            listPermissionTable.insert({ listName: itemText, userName: ostoslistaState.username, listId: newGuid }).then(function () {
                 refreshLists(function () {
                     closeAddListPanel();
                     $('#lists').val(newGuid);
@@ -461,6 +509,7 @@ $(function () {
     
     // On page init, fetch the data and set up event handlers
     $(function () {
+        $.support.cors = true;
         closeAllPanels();
         $("#logged-in").hide();
         $('input, button, div#xdiv').not('#log-in').attr('disabled', 'disabled').addClass('disabled-ui');
