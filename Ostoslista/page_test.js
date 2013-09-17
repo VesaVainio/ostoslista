@@ -210,6 +210,7 @@ function handleLoginResponse() {
             method: "POST",
             body: { accessToken: frag.access_token }
         }).done(function (results) {
+            alert('getfbaccesstoken got response, result: ' + results.result);
             ostoslistaState.accessToken = results.result.accessToken;
             putToStore('accessToken', ostoslistaState.accessToken);
             window.location.replace('index.html');
@@ -239,7 +240,7 @@ function getFromStore(key) {
 }
 
 function logIn() {
-    window.location.replace('https://www.facebook.com/dialog/oauth?client_id=307252376076816&redirect_uri=http%3A%2F%2Fostoslista.azurewebsites.net/index.html&response_type=token')
+    window.location.replace('https://www.facebook.com/dialog/oauth?client_id=307252376076816&redirect_uri=http%3A%2F%2Fostoslista.azurewebsites.net/test.html&response_type=token')
 }
 
 function logOut() {

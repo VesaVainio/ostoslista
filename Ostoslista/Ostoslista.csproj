@@ -121,7 +121,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controllers\GetFBAccessTokenController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\OstoslistaController1.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -132,6 +134,8 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Content Include="channel.html" />
+    <Content Include="page_test.js" />
+    <Content Include="test.html" />
     <Content Include="Global.asax" />
     <Content Include="images\progress-big.gif" />
     <Content Include="images\progress.gif" />
@@ -147,6 +151,7 @@
     <Content Include="Script\amplify.min.js" />
     <Content Include="Script\jquery.ba-bbq.min.js" />
     <Content Include="Script\jquery.color-2.1.2.min.js" />
+    <Content Include="Script\MobileServices.Web-1.0.0.js" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
