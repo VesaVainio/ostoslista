@@ -134,7 +134,13 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Content Include="channel.html" />
-    <Content Include="page_test.js" />
+    <Content Include="Script\jquery.ba-bbq.js" />
+    <Content Include="Script\jquery.ba-bbq.min.js">
+      <DependentUpon>jquery.ba-bbq.js</DependentUpon>
+    </Content>
+    <Content Include="Script\MobileServices.Web-1.0.0.min.js">
+      <DependentUpon>MobileServices.Web-1.0.0.js</DependentUpon>
+    </Content>
     <Content Include="test.html" />
     <Content Include="Global.asax" />
     <Content Include="images\progress-big.gif" />
@@ -149,7 +155,6 @@
     <Content Include="page.js" />
     <Content Include="Script\amplify.js" />
     <Content Include="Script\amplify.min.js" />
-    <Content Include="Script\jquery.ba-bbq.min.js" />
     <Content Include="Script\jquery.color-2.1.2.min.js" />
     <Content Include="Script\MobileServices.Web-1.0.0.js" />
     <Content Include="Web.config" />
@@ -172,6 +177,12 @@
     <None Include="Properties\PublishProfiles\ostoslista - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\ostoslista - Web Deploy.pubxml" />
     <Content Include="less_styles.less" />
+    <Content Include="Script\jquery.ba-bbq.min.js.map">
+      <DependentUpon>jquery.ba-bbq.js</DependentUpon>
+    </Content>
+    <Content Include="Script\MobileServices.Web-1.0.0.min.js.map">
+      <DependentUpon>MobileServices.Web-1.0.0.js</DependentUpon>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
