@@ -2,40 +2,18 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Ostoslista</title>
+    <title>Ostoslista TEST2</title>
     <link rel="stylesheet" href="less_styles.min.css" />
     <meta name="viewport" content="width=device-width" />
     <!--[if lt IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6.1/html5shiv.js"></script><![endif]-->
 </head>
 <body>
-    <div id="fb-root"></div>
-    <script>
-        window.fbAsyncInit = function () {
-            FB.init({
-                appId: '307252376076816', // App ID
-                channelUrl: '//ostoslista.azurewebsites.net//channel.html', // Channel File
-                status: false, // check login status
-                cookie: false, // enable cookies to allow the server to access the session
-                xfbml: false,  // parse XFBML
-                oauth: true
-            });
-        };
-
-        // Load the SDK Asynchronously
-        (function (d) {
-            var js, id = 'facebook-jssdk', ref = d.getElementsByTagName('script')[0];
-            if (d.getElementById(id)) { return; }
-            js = d.createElement('script'); js.id = id; js.async = true;
-            js.src = "//connect.facebook.net/en_US/all.js";
-            ref.parentNode.insertBefore(js, ref);
-        }(document));
-    </script>
     <div id="wrapper">
         <article>
             <header>
-                <h1>Ostoslista</h1>
+                <h1>Ostoslista TEST2</h1>
                 <button id="hidden-default-button" tabindex="-1" style="position:absolute; height: 0px; width: 0px; border: none; padding: 0"></button>
-                <div id="logged-in">
+                <div id="logged-in" style="display:none;">
                     <span id="login-picture"></span> <span id="login-name"></span>
                     <button id="log-out">Kirjaudu ulos</button>
                     <button id="log-out-mobile">X</button>

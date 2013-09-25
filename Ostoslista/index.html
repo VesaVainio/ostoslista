@@ -1,98 +1,79 @@
 ﻿<!DOCTYPE html>
 <html>
-    <head>
-        <meta charset='utf-8' />
-        <title>Ostoslista</title>
-        <link rel='stylesheet' href='less_styles.min.css' />
-        <meta name='viewport' content='width=device-width' />
-        <!--[if lt IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6.1/html5shiv.js"></script><![endif]-->
-    </head>
-    <body>
-        <div id="fb-root"></div>
-        <script>
-	      window.fbAsyncInit = function() {
-		    FB.init({
-		      appId: '307252376076816', // App ID
-		      channelUrl: '//ostoslista.azurewebsites.net//channel.html', // Channel File
-		      status     : false, // check login status
-		      cookie     : false, // enable cookies to allow the server to access the session
-		      xfbml      : false,  // parse XFBML
-              oauth      : true
-		    });
-	      };
-
-	      // Load the SDK Asynchronously
-	      (function(d){
-		     var js, id = 'facebook-jssdk', ref = d.getElementsByTagName('script')[0];
-		     if (d.getElementById(id)) {return;}
-		     js = d.createElement('script'); js.id = id; js.async = true;
-		     js.src = "//connect.facebook.net/en_US/all.js";
-		     ref.parentNode.insertBefore(js, ref);
-	       }(document));
-	    </script>
-        <div id='wrapper'>
-            <article>
-                <header>
-                    <h1>Ostoslista</h1>
-                    <button id="hidden-default-button" tabindex="-1" style="position:absolute; height: 0px; width: 0px; border: none; padding: 0"></button>
-                    <div id="logged-in">
-                        <span id="login-picture"></span> <span id="login-name"></span>
-                        <button id="log-out">Kirjaudu ulos</button>
-                        <button id="log-out-mobile">X</button>
-                    </div>
-                    <div id="logged-out">
-                        Kirjaudu sisään Facebook-tunnuksellasi, jotta voit käyttää ostoslistoja.
-                        <button id="log-in">Kirjaudu sisään</button>
-                    </div>
-                    <div id="change-list">Aktiivinen ostoslista: <select id="lists"></select>.
-                        <div id="list-buttons">
+<head>
+    <meta charset="utf-8" />
+    <title>Ostoslista</title>
+    <link rel="stylesheet" href="less_styles.min.css" />
+    <meta name="viewport" content="width=device-width" />
+    <!--[if lt IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6.1/html5shiv.js"></script><![endif]-->
+</head>
+<body>
+    <div id="wrapper">
+        <article>
+            <header>
+                <h1>Ostoslista</h1>
+                <button id="hidden-default-button" tabindex="-1" style="position:absolute; height: 0px; width: 0px; border: none; padding: 0"></button>
+                <div id="logged-in" style="display:none;">
+                    <span id="login-picture"></span> <span id="login-name"></span>
+                    <button id="log-out">Kirjaudu ulos</button>
+                    <button id="log-out-mobile">X</button>
+                </div>
+                <div id="logged-out">
+                    Kirjaudu sisään Facebook-tunnuksellasi, jotta voit käyttää ostoslistoja.
+                    <button id="log-in">Kirjaudu sisään</button>
+                </div>
+                <div id="change-list">
+                    Aktiivinen ostoslista: <select id="lists"></select>.
+                    <div id="list-buttons">
                         <button id="add-new-list">Luo uusi lista</button>
                         <button id="share-list">Jaa ostoslista Facebook-ystävän kanssa</button>
                         <button id="share-list-mobile">Jaa lista</button>
                         <div id="progress-container"><div id="progress" style="display:none;"><img src="images/progress.gif" width="16" height="16" alt="Sivun päivityksen animaatio" /></div></div>
-                        </div>
-                        <div id="add-list-panel" style="display:none;">
-                            <form id="add-list">
-                                <button id="cancel-add-list">Peruuta</button> <button type="submit">Lisää</button> 
-                                <div><input type="text" id="new-list-name" placeholder="Kirjoita uuden ostoslistan nimi" /></div>
-                            </form>
-                        </div>
                     </div>
-                    <div id="sharing">
-                        <div id="shared-friends" style="display:none;">Jaettu seuraavien ystävien kanssa: </div>
-                        <div id="add-friend-panel" style="display:none;">
-                            <form id="add-friend">
-                                <button id="cancel-add-friend">Peruuta</button>
-                                <div><input type="text" id="new-friend-name" placeholder="Kirjoita Facebook-ystävän nimi" /></div>
-                                <div id="friends-popup" style="display:none;"></div>
-                            </form>
-                        </div>
+                    <div id="add-list-panel" style="display:none;">
+                        <form id="add-list">
+                            <button id="cancel-add-list">Peruuta</button> <button type="submit">Lisää</button>
+                            <div><input type="text" id="new-list-name" placeholder="Kirjoita uuden ostoslistan nimi" /></div>
+                        </form>
                     </div>
-                    
-                    <form id='add-item'>
-                        <button type='submit'>Lisää</button>
-                        <div><input type='text' id='new-item-text' placeholder='Kirjoita lisättävä asia' /></div>
-                    </form>
-                </header>
-                
-                <ul id='todo-items'></ul>
-                <p id='summary'>Ladataan...</p>
-                <div id="bottom-buttons">
-                    <button id="select-all">Merkitse kaikki</button>
-                    <button id="delete-selected">Poista merkityt</button>
                 </div>
-            </article>
+                <div id="sharing">
+                    <div id="shared-friends" style="display:none;">Jaettu seuraavien ystävien kanssa: </div>
+                    <div id="add-friend-panel" style="display:none;">
+                        <form id="add-friend">
+                            <button id="cancel-add-friend">Peruuta</button>
+                            <div><input type="text" id="new-friend-name" placeholder="Kirjoita Facebook-ystävän nimi" /></div>
+                            <div id="friends-popup" style="display:none;"></div>
+                        </form>
+                    </div>
+                </div>
 
-            <footer>
-                <ul id='errorlog'></ul>
-            </footer>
-        </div>
+                <form id="add-item">
+                    <button type="submit">Lisää</button>
+                    <div><input type="text" id="new-item-text" placeholder="Kirjoita lisättävä asia" /></div>
+                </form>
+            </header>
 
-        <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.9.1.min.js"></script>
-        <script src="Script/MobileServices.Web-1.0.0.js"></script>
-        <script src="Script/jquery.ba-bbq.min.js"></script>
-        <script src="Script/jquery.color-2.1.2.min.js"></script>
-        <script src="Script/amplify.min.js"></script>
-        <script src="page.js"></script>
-    </body>
+            <ul id="todo-items"></ul>
+            <p id="summary">Ladataan...</p>
+            <div id="bottom-buttons">
+                <button id="select-all">Merkitse kaikki</button>
+                <button id="delete-selected">Poista merkityt</button>
+            </div>
+        </article>
+
+        <footer>
+            <ul id="errorlog"></ul>
+        </footer>
+    </div>
+
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.9.1.min.js"></script>
+    <script src="Script/MobileServices.Web-1.0.0.js"></script>
+    <script src="Script/jquery.ba-bbq.min.js"></script>
+    <script src="Script/jquery.color-2.1.2.min.js"></script>
+    <script src="Script/amplify.min.js"></script>
+    <script src="/Scripts/jquery.signalR-1.0.0.js"></script>
+    <script src="/signalr/hubs"></script>
+    <script src="page.js"></script>
+</body>
 </html>

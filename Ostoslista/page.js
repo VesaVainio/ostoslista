@@ -1,5 +1,8 @@
 ﻿
-var ostoslistaState = { userId: '', facebookId: '', username: '', accessToken: '', friends: null, waitingForFriends: false };
+var ostoslistaState = {
+    userId: '', facebookId: '', username: '', accessToken: '', friends: null, waitingForFriends: false,
+    selectedListId: '', editList: new Array(), editingItem: null
+};
 var progressState = { timer: [], count: 0 };
 
 if (typeof String.prototype.startsWith != 'function') {
@@ -34,6 +37,11 @@ function refreshLists(callback) {
         });
 
         typeof callback === 'function' && callback();
+
+        // do joinList AFTER callback, as in some cases the list selection is changed in callback
+        var listId = $('#lists option:selected').val();
+        ostoslistaState.selectedListId = listId;
+        ostoslistaState.hub.server.joinList(listId);
 
         refreshTodoItems();
         refreshSharedFriends();
@@ -103,7 +111,7 @@ function refreshSharedFriends(callback) {
         } else {
             sharedFriends.empty().hide();
         }
-        
+
         cancelProgressIndicator('refreshFriends');
         typeof callback === 'function' && callback();
     });
@@ -173,7 +181,8 @@ function refreshAuthDisplay(callback) {
     if (isLoggedIn) {
         if (!getFromStore('userId') || !getFromStore('facebookId') || !getFromStore('userName')) {
             initProgressIndicator('fbName');
-            FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
+            var url = 'https://graph.facebook.com/me?access_token=' + ostoslistaState.accessToken + '&callback=?';
+            $.getJSON(url, function (response) {
                 putToStore('userId', "Facebook:" + response.id);
                 putToStore('facebookId', response.id);
                 putToStore('userName', response.name);
@@ -229,12 +238,10 @@ function handleLoginResponse() {
 }
 
 function putToStore(key, item) {
-    //localStorage[key] = item;
     amplify.store(key, item);
 }
 
 function getFromStore(key) {
-    //return localStorage[key];
     return amplify.store(key);
 }
 
@@ -250,6 +257,16 @@ function logOut() {
     $('#summary').html('<strong>Kirjaudu sisään, jotta voit käyttää ostoslistoja.</strong>');
     closeAllPanels();
     localStorage.clear();
+}
+
+function highlightItem(itemId) {
+    if (itemId) {
+        var liElement = $('li[data-todoitem-id=' + itemId + ']');
+        liElement.animate({ backgroundColor: "#FFFF88" }, 100);
+        setTimeout(function () {
+            liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
+        }, 4000);
+    }
 }
 
 function initProgressIndicator(timerKey) {
@@ -276,6 +293,18 @@ function cancelProgressIndicator(timerKey) {
     }
 }
 
+function broadcastListUpdate(itemId) {
+    var listId = $('#lists option:selected').val();
+    if (ostoslistaState.hub) {
+        ostoslistaState.hub.server.broadcastListUpdate(listId, ostoslistaState.username, itemId);
+    }
+}
+
+function leaveList() {
+    ostoslistaState.hub.server.leaveList(ostoslistaState.selectedListId);
+    ostoslistaState.editList.length = 0;
+}
+
 function selectAll() {
     var checkboxes = $('#todo-items input[type=checkbox]');
     var state = $('#todo-items input:checked').length < checkboxes.length;
@@ -286,6 +315,7 @@ function selectAll() {
         method: "post",
         parameters: { listId: listId, state: state }
     }).done(function (results) {
+        broadcastListUpdate();
         refreshTodoItems();
         cancelProgressIndicator('markAllComplete');
     }, handleError);
@@ -300,10 +330,27 @@ function deleteSelected() {
             method: "post",
             parameters: { listId: listId }
         }).done(function (results) {
+            broadcastListUpdate();
             refreshTodoItems();
             cancelProgressIndicator('deleteSelected');
         }, handleError);
     }
+}
+
+function preventItemEdit(element, event) {
+    var itemId = getTodoItemId(element);
+    for (var i = 0; i < ostoslistaState.editList.length; i++) {
+        if (ostoslistaState.editList[i].itemId === itemId) {
+            ostoslistaState.editingItem = itemId;
+            event.preventDefault();
+            event.stopPropagation();
+            element.blur();
+            alert("Käyttäjä " + ostoslistaState.editList[i].whoUpdating + " muokkaa jo tätä riviä toisessa ikkunassa");
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function openAddListPanel() {
@@ -319,7 +366,8 @@ function openAddFriendPanel() {
     $('#add-friend-panel').show();
     $('#new-friend-name').focus();
     if (!ostoslistaState.friends) {
-        FB.api('/me/friends?fields=id,name&access_token=' + ostoslistaState.accessToken, function (response) {
+        var url = 'https://graph.facebook.com/me/friends?fields=id,name&access_token=' + ostoslistaState.accessToken + '&callback=?';
+        $.getJSON(url, function (response) {
             processFriendsData(response.data);
         });
     }
@@ -346,15 +394,19 @@ function closeAllPanels() {
 $(function () {
 
     // Handle inserting new item
-    $('#add-item').submit(function(evt) {
+    $('#add-item').submit(function (evt) {
         var textbox = $('#new-item-text'),
             itemText = textbox.val().capitalize(),
             listId = $('#lists option:selected').val();
 
         if (itemText !== '') {
             initProgressIndicator('insertItem');
-            todoItemTable.insert({ text: itemText, complete: false, listId: listId }).then(function () {
-                refreshTodoItems(function () { cancelProgressIndicator('insertItem') });
+            todoItemTable.insert({ text: itemText, complete: false, listId: listId }).then(function (result) {
+                broadcastListUpdate(result.id);
+                refreshTodoItems(function () {
+                    cancelProgressIndicator('insertItem');
+                    highlightItem(result.id);
+                });
             }, handleError);
         }
 
@@ -381,6 +433,10 @@ $(function () {
     });
 
     $('#lists').change(function (evt) {
+        leaveList();
+        listId = $('#lists option:selected').val();
+        ostoslistaState.selectedListId = listId;
+        ostoslistaState.hub.server.joinList(ostoslistaState.selectedListId);
         refreshTodoItems();
         refreshSharedFriends();
         evt.preventDefault();
@@ -392,26 +448,54 @@ $(function () {
         var listId = $('#lists option:selected').val();
         var liElement = $(this).closest('li');
         liElement.animate({ backgroundColor: "#F5DADF" }, 100);
-        todoItemTable.update({ id: getTodoItemId(this), text: newText, listId: listId }).then(function () {
+        liElement.blur();
+        var itemId = getTodoItemId(this);
+        todoItemTable.update({ id: itemId, text: newText, listId: listId }).then(function () {
+            broadcastListUpdate(itemId);
             liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
         }, handleError);
     });
 
-    $(document.body).on('change', '.item-complete', function() {
+    $(document.body).on('focus', '.item-text', function (event) {
+        if (preventItemEdit(this, event)) {
+            return;
+        }
+
+        var listId = $('#lists option:selected').val();
+        var itemId = getTodoItemId(this);
+        ostoslistaState.hub.server.beginListItemUpdating(listId, itemId, ostoslistaState.username);
+    });
+
+    $(document.body).on('focusout', '.item-text', function (event) {
+        var listId = $('#lists option:selected').val();
+        var itemId = getTodoItemId(this);
+        ostoslistaState.editingItem = null;
+        ostoslistaState.hub.server.endListItemUpdating(listId, itemId);
+    });
+
+    $(document.body).on('change', '.item-complete', function () {
         var isComplete = $(this).prop('checked');
         var listId = $('#lists option:selected').val();
         var liElement = $(this).closest('li');
         liElement.animate({ backgroundColor: "#F5DADF" }, 100);
-        todoItemTable.update({ id: getTodoItemId(this), complete: isComplete, listId: listId }).then(function () {
+        var itemId = getTodoItemId(this);
+        todoItemTable.update({ id: itemId, complete: isComplete, listId: listId }).then(function () {
+            broadcastListUpdate(itemId);
             liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
         }, handleError);
     });
 
     // Handle delete
     $(document.body).on('click', '.item-delete', function () {
+        if (preventItemEdit(this, event)) {
+            return;
+        }
+
         var listId = $('#lists option:selected').val();
         initProgressIndicator('delItem');
-        todoItemTable.del({ id: getTodoItemId(this), listId: listId }).then(function () {
+        var itemId = getTodoItemId(this);
+        todoItemTable.del({ id: itemId, listId: listId }).then(function () {
+            broadcastListUpdate(itemId);
             refreshTodoItems(function () { cancelProgressIndicator('delItem'); });
         }, handleError);
     });
@@ -474,7 +558,7 @@ $(function () {
             closeAddListPanel();
         }
     });
-    
+
     // On page init, fetch the data and set up event handlers
     $(function () {
         $.support.cors = true;
@@ -491,5 +575,37 @@ $(function () {
         $("button#cancel-add-friend").click(closeAddFriendPanel);
         $("button#select-all").click(selectAll);
         $("button#delete-selected").click(deleteSelected);
+
+        var hub = $.connection.ostoslistaHub;
+        hub.client.listUpdated = function (listId, whoUpdated, updateTime, itemId) {
+            refreshTodoItems(function () { highlightItem(itemId); });
+        };
+        hub.client.beginListItemUpdating = function (itemId, whoUpdating, updateTime) {
+            $('li[data-todoitem-id=' + itemId + ']').animate({ backgroundColor: "#DDDDDD" }, 100);
+            for (var i = 0; i < ostoslistaState.editList.length; i++) {
+                if (ostoslistaState.editList[i].itemId === itemId) {
+                    return; // already contained in array
+                }
+            }
+            ostoslistaState.editList.push({ itemId: itemId, whoUpdating: whoUpdating, updateTime: updateTime });
+        };
+        hub.client.endListItemUpdating = function (itemId) {
+            $('li[data-todoitem-id=' + itemId + ']').animate({ backgroundColor: "#FFFFFF" }, 100);
+            for (var i = 0; i < ostoslistaState.editList.length; i++) {
+                if (ostoslistaState.editList[i].itemId === itemId) {
+                    ostoslistaState.editList.splice(i, 1);
+                    break;
+                }
+            }
+        };
+        hub.client.sendUpdates = function () {
+            if (ostoslistaState.editingItem) {
+                var listId = $('#lists option:selected').val();
+                ostoslistaState.hub.server.beginListItemUpdating(listId, ostoslistaState.editingItem, ostoslistaState.username);
+            }
+        };
+        $.connection.hub.start().done(function () {
+            ostoslistaState.hub = hub;
+        });
     });
 });

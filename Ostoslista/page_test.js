@@ -181,7 +181,8 @@ function refreshAuthDisplay(callback) {
     if (isLoggedIn) {
         if (!getFromStore('userId') || !getFromStore('facebookId') || !getFromStore('userName')) {
             initProgressIndicator('fbName');
-            FB.api('/me?access_token=' + ostoslistaState.accessToken, function (response) {
+            var url = 'https://graph.facebook.com/me?access_token=' + ostoslistaState.accessToken + '&callback=?';
+            $.getJSON(url, function (response) {
                 putToStore('userId', "Facebook:" + response.id);
                 putToStore('facebookId', response.id);
                 putToStore('userName', response.name);
@@ -365,7 +366,8 @@ function openAddFriendPanel() {
     $('#add-friend-panel').show();
     $('#new-friend-name').focus();
     if (!ostoslistaState.friends) {
-        FB.api('/me/friends?fields=id,name&access_token=' + ostoslistaState.accessToken, function (response) {
+        var url = 'https://graph.facebook.com/me/friends?fields=id,name&access_token=' + ostoslistaState.accessToken + '&callback=?';
+        $.getJSON(url, function (response) {
             processFriendsData(response.data);
         });
     }
