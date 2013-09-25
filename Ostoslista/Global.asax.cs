@@ -6,6 +6,8 @@ using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Routing;
 
+using Microsoft.AspNet.SignalR;
+
 namespace Ostoslista
 {
     // Note: For instructions on enabling IIS6 or IIS7 classic mode, 
@@ -14,6 +16,9 @@ namespace Ostoslista
     {
         protected void Application_Start()
         {
+            // Register the default hubs route: ~/signalr/hubs
+            RouteTable.Routes.MapHubs();
+            
             AreaRegistration.RegisterAllAreas();
 
             WebApiConfig.Register(GlobalConfiguration.Configuration);
