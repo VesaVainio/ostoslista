@@ -42,6 +42,9 @@ function refreshLists(callback) {
         ostoslistaState.selectedListId = listId;
         ostoslistaState.hub.server.joinList(listId);
 
+        var listText = $('#lists option:selected').text();
+        document.title = listText + " - Ostoslista";
+
         refreshTodoItems();
         refreshSharedFriends();
         cancelProgressIndicator('refreshLists');
@@ -172,6 +175,13 @@ function processFriendsData(data) {
     });
 }
 
+function setSelectedList() {
+    var frag = $.deparam.fragment();
+    if (frag.hasOwnProperty("listid")) {
+        $('#lists').val(frag.listid);
+    }
+}
+
 function refreshAuthDisplay(callback) {
     var isLoggedIn = client.currentUser !== null;
     $("#logged-in").toggle(isLoggedIn);
@@ -190,7 +200,7 @@ function refreshAuthDisplay(callback) {
                 ostoslistaState.username = response.name;
                 $("#login-name").text(ostoslistaState.username);
                 $("#login-picture").empty().append($('<img src="http://graph.facebook.com/' + ostoslistaState.facebookId + '/picture">'));
-                refreshLists();
+                refreshLists(setSelectedList);
                 $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
                 cancelProgressIndicator('fbName');
                 typeof callback === 'function' && callback();
@@ -201,7 +211,7 @@ function refreshAuthDisplay(callback) {
             ostoslistaState.username = getFromStore('userName');
             $("#login-name").text(ostoslistaState.username);
             $("#login-picture").empty().append($('<img src="http://graph.facebook.com/' + ostoslistaState.facebookId + '/picture">'));
-            refreshLists();
+            refreshLists(setSelectedList);
             $('input, button, div#xdiv').not('#log-in').removeAttr('disabled').removeClass('disabled-ui');
             typeof callback === 'function' && callback();
         }
@@ -442,6 +452,7 @@ $(function () {
                 refreshLists(function () {
                     closeAddListPanel();
                     $('#lists').val(newGuid);
+                    window.location.hash = 'listid=' + newGuid;
                 });
             }, handleError);
         }
@@ -452,7 +463,12 @@ $(function () {
     $('#lists').change(function (evt) {
         leaveList();
         listId = $('#lists option:selected').val();
+
+        var listText = $('#lists option:selected').text();
+        document.title = listText + " - Ostoslista";
+
         ostoslistaState.selectedListId = listId;
+        window.location.hash = 'listid=' + listId;
         ostoslistaState.hub.server.joinList(ostoslistaState.selectedListId);
         refreshTodoItems();
         refreshSharedFriends();
