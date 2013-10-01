@@ -25,9 +25,8 @@ function refreshLists(callback) {
     initProgressIndicator('refreshLists');
     query.read().then(function (listPermissionItems) {
         if (listPermissionItems.length == 0) {
-            alert('Listoja ei löydy, luodaan lista OLETUS');
             listPermissionTable.insert({ listName: "OLETUS", userName: ostoslistaState.username, listId: guid() }).then(
-                refreshLists, handleError);
+                refreshLists(function () { cancelProgressIndicator('refreshLists'); }), handleError);
             return;
         }
 
@@ -111,7 +110,7 @@ function refreshSharedFriends(callback) {
         } else {
             sharedFriends.empty().hide();
         }
-        
+
         cancelProgressIndicator('refreshFriends');
         typeof callback === 'function' && callback();
     });
@@ -264,8 +263,8 @@ function highlightItem(itemId) {
         var liElement = $('li[data-todoitem-id=' + itemId + ']');
         liElement.animate({ backgroundColor: "#FFFF88" }, 100);
         setTimeout(function () {
-            liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
-        }, 4000);
+            liElement.animate({ backgroundColor: "#FFFFFF" }, 750);
+        }, 2500);
     }
 }
 
@@ -295,6 +294,10 @@ function cancelProgressIndicator(timerKey) {
 
 function broadcastListUpdate(itemId) {
     var listId = $('#lists option:selected').val();
+    if (!itemId) {
+        itemId = -1;
+    }
+
     if (ostoslistaState.hub) {
         ostoslistaState.hub.server.broadcastListUpdate(listId, ostoslistaState.username, itemId);
     }
@@ -322,6 +325,20 @@ function selectAll() {
 }
 
 function deleteSelected() {
+    var foundCheckedBeingEdited = false;
+    $('#todo-items input:checked').each(function () {
+        var itemId = getTodoItemId(this);
+        for (var i = 0; i < ostoslistaState.editList.length; i++) {
+            if (ostoslistaState.editList[i].itemId === itemId) {
+                foundCheckedBeingEdited = true;
+            }
+        }
+    });
+    if (foundCheckedBeingEdited) {
+        alert('Toinen käyttäjä muokkaa jotakin listan kohtaa. Et voi poistaa asioita listalta juuri nyt.');
+        return;
+    }
+
     if (confirm('Poistetaanko merkityt asiat?')) {
         var listId = $('#lists option:selected').val();
         initProgressIndicator('deleteSelected');
@@ -342,8 +359,8 @@ function preventItemEdit(element, event) {
     for (var i = 0; i < ostoslistaState.editList.length; i++) {
         if (ostoslistaState.editList[i].itemId === itemId) {
             ostoslistaState.editingItem = itemId;
-            event.preventDefault();
-            event.stopPropagation();
+            event.preventDefault ? event.preventDefault() : event.returnValue = false;
+            event.stopPropagation ? event.stopPropagation() : event.returnValue = false;
             element.blur();
             alert("Käyttäjä " + ostoslistaState.editList[i].whoUpdating + " muokkaa jo tätä riviä toisessa ikkunassa");
             return true;
@@ -394,7 +411,7 @@ function closeAllPanels() {
 $(function () {
 
     // Handle inserting new item
-    $('#add-item').submit(function(evt) {
+    $('#add-item').submit(function (evt) {
         var textbox = $('#new-item-text'),
             itemText = textbox.val().capitalize(),
             listId = $('#lists option:selected').val();
@@ -473,7 +490,7 @@ $(function () {
         ostoslistaState.hub.server.endListItemUpdating(listId, itemId);
     });
 
-    $(document.body).on('change', '.item-complete', function() {
+    $(document.body).on('change', '.item-complete', function () {
         var isComplete = $(this).prop('checked');
         var listId = $('#lists option:selected').val();
         var liElement = $(this).closest('li');
@@ -498,7 +515,7 @@ $(function () {
             broadcastListUpdate(itemId);
             refreshTodoItems(function () { cancelProgressIndicator('delItem'); });
         }, handleError);
-    }); 
+    });
 
     $('#friends-popup').on('click', 'div#rowdiv', function () {
         var id = $(this).attr('data-friend-id');
@@ -558,7 +575,7 @@ $(function () {
             closeAddListPanel();
         }
     });
-    
+
     // On page init, fetch the data and set up event handlers
     $(function () {
         $.support.cors = true;

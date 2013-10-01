@@ -299,6 +299,9 @@ footer a {
   #bottom-buttons {
     padding: 8px;
   }
+  .item-delete {
+    display: none;
+  }
 }
 @media all and (max-width: 430px) {
   #logged-in #login-name {

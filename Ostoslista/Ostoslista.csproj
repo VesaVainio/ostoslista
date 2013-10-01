@@ -149,6 +149,7 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Content Include="channel.html" />
     <Content Include="page_test.js" />
+    <Content Include="test.html" />
     <Content Include="Scripts\jquery.signalR-1.0.0.js" />
     <Content Include="Scripts\jquery.signalR-1.0.0.min.js" />
     <Content Include="Scripts\jquery.signalR-2.0.0-beta1.js" />
@@ -160,7 +161,6 @@
     <Content Include="Script\MobileServices.Web-1.0.0.min.js">
       <DependentUpon>MobileServices.Web-1.0.0.js</DependentUpon>
     </Content>
-    <Content Include="test.html" />
     <Content Include="Global.asax" />
     <Content Include="images\progress-big.gif" />
     <Content Include="images\progress.gif" />
