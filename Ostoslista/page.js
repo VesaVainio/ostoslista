@@ -37,16 +37,6 @@ function refreshLists(callback) {
 
         typeof callback === 'function' && callback();
 
-        // do joinList AFTER callback, as in some cases the list selection is changed in callback
-        var listId = $('#lists option:selected').val();
-        ostoslistaState.selectedListId = listId;
-        ostoslistaState.hub.server.joinList(listId);
-
-        var listText = $('#lists option:selected').text();
-        document.title = listText + " - Ostoslista";
-
-        refreshTodoItems();
-        refreshSharedFriends();
         cancelProgressIndicator('refreshLists');
     }, handleError);
 }
@@ -177,8 +167,26 @@ function processFriendsData(data) {
 
 function setSelectedList() {
     var frag = $.deparam.fragment();
+    var listId;
     if (frag.hasOwnProperty("listid")) {
+        if (ostoslistaState.selectedListId) {
+            leaveList();
+        }
+
+        listId = frag.listid;
         $('#lists').val(frag.listid);
+
+        var listText = $('#lists option:selected').text();
+        document.title = listText + " - Ostoslista";
+
+        ostoslistaState.selectedListId = listId;
+
+        ostoslistaState.hub.server.joinList(ostoslistaState.selectedListId);
+        refreshTodoItems();
+        refreshSharedFriends();
+    } else {
+        listId = $('#lists option:selected').val();
+        window.location.hash = 'listid=' + listId;
     }
 }
 
@@ -259,7 +267,6 @@ function logIn() {
 }
 
 function logOut() {
-    // TODO: kirjautuminen ulos myös facebookista!
     client.logout();
     $('#lists').empty();
     refreshAuthDisplay();
@@ -368,7 +375,6 @@ function preventItemEdit(element, event) {
     var itemId = getTodoItemId(element);
     for (var i = 0; i < ostoslistaState.editList.length; i++) {
         if (ostoslistaState.editList[i].itemId === itemId) {
-            ostoslistaState.editingItem = itemId;
             event.preventDefault ? event.preventDefault() : event.returnValue = false;
             event.stopPropagation ? event.stopPropagation() : event.returnValue = false;
             element.blur();
@@ -452,7 +458,6 @@ $(function () {
                 refreshLists(function () {
                     closeAddListPanel();
                     $('#lists').val(newGuid);
-                    window.location.hash = 'listid=' + newGuid;
                 });
             }, handleError);
         }
@@ -461,17 +466,8 @@ $(function () {
     });
 
     $('#lists').change(function (evt) {
-        leaveList();
-        listId = $('#lists option:selected').val();
-
-        var listText = $('#lists option:selected').text();
-        document.title = listText + " - Ostoslista";
-
-        ostoslistaState.selectedListId = listId;
+        var listId = $('#lists option:selected').val();
         window.location.hash = 'listid=' + listId;
-        ostoslistaState.hub.server.joinList(ostoslistaState.selectedListId);
-        refreshTodoItems();
-        refreshSharedFriends();
         evt.preventDefault();
     });
 
@@ -496,6 +492,13 @@ $(function () {
 
         var listId = $('#lists option:selected').val();
         var itemId = getTodoItemId(this);
+
+        // do endListItemUpdating also in here, because eg. WP browser doesn't fire focusout properly
+        if (ostoslistaState.editingItem) {
+            ostoslistaState.hub.server.endListItemUpdating(listId, ostoslistaState.editingItem);
+        }
+
+        ostoslistaState.editingItem = itemId;
         ostoslistaState.hub.server.beginListItemUpdating(listId, itemId, ostoslistaState.username);
     });
 
@@ -590,6 +593,10 @@ $(function () {
             e.stopPropagation();
             closeAddListPanel();
         }
+    });
+
+    $(window).bind('hashchange', function (e) {
+        setSelectedList();
     });
 
     // On page init, fetch the data and set up event handlers

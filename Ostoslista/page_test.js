@@ -375,7 +375,6 @@ function preventItemEdit(element, event) {
     var itemId = getTodoItemId(element);
     for (var i = 0; i < ostoslistaState.editList.length; i++) {
         if (ostoslistaState.editList[i].itemId === itemId) {
-            ostoslistaState.editingItem = itemId;
             event.preventDefault ? event.preventDefault() : event.returnValue = false;
             event.stopPropagation ? event.stopPropagation() : event.returnValue = false;
             element.blur();
@@ -493,6 +492,13 @@ $(function () {
 
         var listId = $('#lists option:selected').val();
         var itemId = getTodoItemId(this);
+
+        // do endListItemUpdating also in here, because eg. WP browser doesn't fire focusout properly
+        if (ostoslistaState.editingItem) {
+            ostoslistaState.hub.server.endListItemUpdating(listId, ostoslistaState.editingItem);
+        }
+
+        ostoslistaState.editingItem = itemId;
         ostoslistaState.hub.server.beginListItemUpdating(listId, itemId, ostoslistaState.username);
     });
 
