@@ -20,6 +20,17 @@ var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobi
     todoItemTable = client.getTable('todoitem'),
     listPermissionTable = client.getTable('listpermission');
 
+var TodoItem = Backbone.Model.Extend({
+});
+
+var TodoList = Backbone.Collection.Extend({
+    model: TodoItem
+});
+
+var ItemView = Backbone.View.Extend({
+
+});
+
 function refreshLists(callback) {
     var query = listPermissionTable.where({ userId: ostoslistaState.userId });
     initProgressIndicator('refreshLists');
@@ -58,12 +69,11 @@ function refreshTodoItems(callback) {
 
     initProgressIndicator('refreshItems');
     query.read({ listId: listId }).then(function (todoItems) {
+        var templateHtml = $('#item-template').html();
+        var compiledTemplate = _.template(templateHtml);
         var listItems = $.map(todoItems, function (item) {
-            return $('<li>')
-                .attr('data-todoitem-id', item.id)
-                .append($('<button class="item-delete">Poista</button>'))
-                .append($('<input type="checkbox" class="item-complete">').prop('checked', item.complete))
-                .append($('<div>').append($('<input class="item-text">').val(item.text)));
+            var result = compiledTemplate(item);
+            return result;
         });
 
         $('#todo-items').empty().append(listItems).toggle(listItems.length > 0);
