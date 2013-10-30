@@ -1,4 +1,7 @@
 ﻿
+// TODO: Uutta listaa lisättäessä bugittaa. Ei automaattisesti vaihda uuteen listaan. Lisäksi listat tulevat drop-downiin kahteen kertaan.
+// List itemin editoinnin kuittaus enterillä ei poista editointimoodia
+
 var ostoslistaState = {
     userId: '', facebookId: '', username: '', accessToken: '', friends: null, waitingForFriends: false,
     selectedListId: '', editList: new Array(), editingItem: null
@@ -20,15 +23,96 @@ var client = new WindowsAzure.MobileServiceClient('https://ostoslista.azure-mobi
     todoItemTable = client.getTable('todoitem'),
     listPermissionTable = client.getTable('listpermission');
 
-var TodoItem = Backbone.Model.Extend({
+var TodoItem = Backbone.Model.extend({
 });
 
-var TodoList = Backbone.Collection.Extend({
+var TodoList = Backbone.Collection.extend({
     model: TodoItem
 });
 
-var ItemView = Backbone.View.Extend({
+var ItemView = Backbone.View.extend({
+    template: _.template($('#item-template').html()),
 
+    events: {
+        "click .item-complete":     "toggleComplete",
+        "change .item-text":        "textChange",
+        "focus .item-text":         "startEdit",
+        "focusout .item-text":      "stopEdit",
+        "click .item-delete":       "deleteItem",
+    },
+
+    initialize: function () {
+        this.listenTo(this.model, 'change', this.render);
+        this.listenTo(this.model, 'destroy', this.remove);
+    },
+
+    render: function () {
+        this.$el.html(this.template(this.model.toJSON()));
+        return this;
+    },
+
+    toggleComplete: function () {
+        var isComplete = this.$('.item-complete').prop('checked');
+        var listId = $('#lists option:selected').val();
+        var liElement = this.$('li');
+        liElement.animate({ backgroundColor: "#F5DADF" }, 150);
+        var itemId = this.model.get('id');
+        todoItemTable.update({ id: itemId, complete: isComplete, listId: listId }).then(function () {
+            broadcastItemUpdated(itemId);
+            liElement.animate({ backgroundColor: "#FFFFFF" }, 150);
+        }, handleError);
+    },
+
+    textChange: function () {
+        var newText = this.$('.item-text').val();
+        var listId = $('#lists option:selected').val();
+        var liElement = this.$('li');
+        liElement.animate({ backgroundColor: "#F5DADF" }, 150);
+        liElement.blur();
+        var itemId = this.model.get('id');
+        todoItemTable.update({ id: itemId, text: newText, listId: listId }).then(function () {
+            broadcastItemUpdated(itemId);
+            liElement.animate({ backgroundColor: "#FFFFFF" }, 150);
+        }, handleError);
+    },
+
+    startEdit: function () {
+        if (preventItemEdit(this.$('li'), event)) {
+            return;
+        }
+
+        var listId = $('#lists option:selected').val();
+        var itemId = this.model.get('id');
+
+        // do endListItemUpdating also in here, because eg. WP browser doesn't fire focusout properly
+        if (ostoslistaState.editingItem) {
+            endListItemUpdating(listId, ostoslistaState.editingItem);
+        }
+
+        ostoslistaState.editingItem = itemId;
+        beginListItemUpdating(listId, itemId, ostoslistaState.username);
+    },
+
+    stopEdit: function () {
+        var listId = $('#lists option:selected').val();
+        var itemId = this.model.get('id');
+        ostoslistaState.editingItem = null;
+        endListItemUpdating(listId, itemId);
+    },
+
+    deleteItem: function () {
+        if (preventItemEdit(this.$('li'), event)) {
+            return;
+        }
+
+        var listId = $('#lists option:selected').val();
+        initProgressIndicator('delItem');
+        var itemId = this.model.get('id');
+        todoItemTable.del({ id: itemId, listId: listId }).then(function () {
+            broadcastListUpdate(itemId);
+            refreshTodoItems(function () { cancelProgressIndicator('delItem'); });
+        }, handleError);
+    }
 });
 
 function refreshLists(callback) {
@@ -69,17 +153,34 @@ function refreshTodoItems(callback) {
 
     initProgressIndicator('refreshItems');
     query.read({ listId: listId }).then(function (todoItems) {
-        var templateHtml = $('#item-template').html();
-        var compiledTemplate = _.template(templateHtml);
-        var listItems = $.map(todoItems, function (item) {
-            var result = compiledTemplate(item);
-            return result;
+        var itemsElement = $('#todo-items').empty();
+
+        ostoslistaState.itemModels = $.map(todoItems, function (item) {
+            var model = new TodoItem(item);
+            var view = new ItemView({ model: model });
+            itemsElement.append(view.render().el);
+            return model;
         });
 
-        $('#todo-items').empty().append(listItems).toggle(listItems.length > 0);
+        itemsElement.toggle(ostoslistaState.itemModels.length > 0);
         $('#summary').html('<strong>' + todoItems.length + '</strong> asiaa listalla');
         cancelProgressIndicator('refreshItems');
         typeof callback === 'function' && callback();
+    }, handleError);
+}
+
+function processItemUpdated(listId, itemId) {
+    initProgressIndicator('processItemUpdated');
+
+    var query = todoItemTable.where({ listId: listId, id: itemId });
+    query.read({ listId: listId }).then(function (todoItems) {
+        if (todoItems.length === 1) {
+            var model = _.find(ostoslistaState.itemModels, function (item) { return item.id === itemId });
+            model.set(todoItems[0]);
+            highlightItem(itemId);
+        }
+
+        cancelProgressIndicator('processItemUpdated');
     }, handleError);
 }
 
@@ -191,7 +292,7 @@ function setSelectedList() {
 
         ostoslistaState.selectedListId = listId;
         
-        ostoslistaState.hub.server.joinList(ostoslistaState.selectedListId);
+        joinList(ostoslistaState.selectedListId);
         refreshTodoItems();
         refreshSharedFriends();
     } else {
@@ -330,9 +431,30 @@ function broadcastListUpdate(itemId) {
     }
 }
 
+function broadcastItemUpdated(itemId) {
+    var listId = $('#lists option:selected').val();
+
+    if (ostoslistaState.hub) {
+        ostoslistaState.hub.server.broadcastItemUpdated(listId, ostoslistaState.username, itemId);
+    }
+}
+
+
 function leaveList() {
     ostoslistaState.hub.server.leaveList(ostoslistaState.selectedListId);
     ostoslistaState.editList.length = 0;
+}
+
+function joinList(listId) {
+    ostoslistaState.hub.server.joinList(listId);
+}
+
+function endListItemUpdating(listId, itemId) {
+    ostoslistaState.hub.server.endListItemUpdating(listId, itemId);
+}
+
+function beginListItemUpdating(listId, itemId, username) {
+    ostoslistaState.hub.server.beginListItemUpdating(listId, itemId, username);
 }
 
 function selectAll() {
@@ -481,71 +603,6 @@ $(function () {
         evt.preventDefault();
     });
 
-    // Handle update
-    $(document.body).on('change', '.item-text', function (event) {
-        var newText = $(this).val();
-        var listId = $('#lists option:selected').val();
-        var liElement = $(this).closest('li');
-        liElement.animate({ backgroundColor: "#F5DADF" }, 100);
-        liElement.blur();
-        var itemId = getTodoItemId(this);
-        todoItemTable.update({ id: itemId, text: newText, listId: listId }).then(function () {
-            broadcastListUpdate(itemId);
-            liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
-        }, handleError);
-    });
-
-    $(document.body).on('focus', '.item-text', function (event) {
-        if (preventItemEdit(this, event)) {
-            return;
-        }
-
-        var listId = $('#lists option:selected').val();
-        var itemId = getTodoItemId(this);
-
-        // do endListItemUpdating also in here, because eg. WP browser doesn't fire focusout properly
-        if (ostoslistaState.editingItem) {
-            ostoslistaState.hub.server.endListItemUpdating(listId, ostoslistaState.editingItem);
-        }
-
-        ostoslistaState.editingItem = itemId;
-        ostoslistaState.hub.server.beginListItemUpdating(listId, itemId, ostoslistaState.username);
-    });
-
-    $(document.body).on('focusout', '.item-text', function (event) {
-        var listId = $('#lists option:selected').val();
-        var itemId = getTodoItemId(this);
-        ostoslistaState.editingItem = null;
-        ostoslistaState.hub.server.endListItemUpdating(listId, itemId);
-    });
-
-    $(document.body).on('change', '.item-complete', function () {
-        var isComplete = $(this).prop('checked');
-        var listId = $('#lists option:selected').val();
-        var liElement = $(this).closest('li');
-        liElement.animate({ backgroundColor: "#F5DADF" }, 100);
-        var itemId = getTodoItemId(this);
-        todoItemTable.update({ id: itemId, complete: isComplete, listId: listId }).then(function () {
-            broadcastListUpdate(itemId);
-            liElement.animate({ backgroundColor: "#FFFFFF" }, 100);
-        }, handleError);
-    });
-
-    // Handle delete
-    $(document.body).on('click', '.item-delete', function () {
-        if (preventItemEdit(this, event)) {
-            return;
-        }
-
-        var listId = $('#lists option:selected').val();
-        initProgressIndicator('delItem');
-        var itemId = getTodoItemId(this);
-        todoItemTable.del({ id: itemId, listId: listId }).then(function () {
-            broadcastListUpdate(itemId);
-            refreshTodoItems(function () { cancelProgressIndicator('delItem'); });
-        }, handleError);
-    });
-
     $('#friends-popup').on('click', 'div#rowdiv', function () {
         var id = $(this).attr('data-friend-id');
         var friendsArray = ostoslistaState.friends;
@@ -630,6 +687,9 @@ $(function () {
         hub.client.listUpdated = function (listId, whoUpdated, updateTime, itemId) {
             refreshTodoItems(function () { highlightItem(itemId); });
         };
+        hub.client.itemUpdated = function (listId, whoUpdated, updateTime, itemId) {
+            processItemUpdated(listId, itemId);
+        };
         hub.client.beginListItemUpdating = function (itemId, whoUpdating, updateTime) {
             $('li[data-todoitem-id=' + itemId + ']').animate({ backgroundColor: "#DDDDDD" }, 100);
             for (var i = 0; i < ostoslistaState.editList.length; i++) {
@@ -651,7 +711,7 @@ $(function () {
         hub.client.sendUpdates = function () {
             if (ostoslistaState.editingItem) {
                 var listId = $('#lists option:selected').val();
-                ostoslistaState.hub.server.beginListItemUpdating(listId, ostoslistaState.editingItem, ostoslistaState.username);
+                beginListItemUpdating(listId, ostoslistaState.editingItem, ostoslistaState.username);
             }
         };
         $.connection.hub.start().done(function () {

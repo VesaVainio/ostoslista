@@ -25,6 +25,16 @@ namespace Ostoslista
             Clients.OthersInGroup(listId).ListUpdated(listId, whoUpdated, DateTime.UtcNow.ToLongTimeString(), itemId);
         }
 
+        public void BroadcastItemUpdated(string listId, string whoUpdated, int itemId)
+        {
+            Clients.OthersInGroup(listId).ItemUpdated(listId, whoUpdated, DateTime.UtcNow.ToLongTimeString(), itemId);
+        }
+
+        public void BroadcastItemsDeleted(string listId, string whoUpdated, int[] itemsArray)
+        {
+            Clients.OthersInGroup(listId).ItemsDeleted(listId, whoUpdated, DateTime.UtcNow.ToLongTimeString(), itemsArray);
+        }
+
         public void BeginListItemUpdating(string listId, int itemId, string whoUpdating)
         {
             Clients.OthersInGroup(listId).BeginListItemUpdating(itemId, whoUpdating, DateTime.UtcNow.ToLongTimeString());
