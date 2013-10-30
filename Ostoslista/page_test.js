@@ -33,11 +33,11 @@ var ItemView = Backbone.View.extend({
     template: _.template($('#item-template').html()),
 
     events: {
-        "click .item-complete":     "toggleComplete",
-        "change .item-text":        "textChange",
-        "focus .item-text":         "startEdit",
-        "focusout .item-text":      "stopEdit",
-        "click .item-delete":       "deleteItem",
+        "click .item-complete": "toggleComplete",
+        "change .item-text": "textChange",
+        "focus .item-text": "startEdit",
+        "focusout .item-text": "stopEdit",
+        "click .item-delete": "deleteItem",
     },
 
     initialize: function () {
@@ -51,7 +51,7 @@ var ItemView = Backbone.View.extend({
     },
 
     animateRemove: function () {
-        this.$el.slideUp();
+        this.$el.stop().slideUp();
     },
 
     toggleComplete: function () {
@@ -165,6 +165,7 @@ function refreshTodoItems(callback) {
             return model;
         });
 
+        ostoslistaState.itemsCollection.reset();
         ostoslistaState.itemsCollection.set(itemModels);
 
         itemsElement.toggle(itemModels.length > 0);
@@ -313,7 +314,7 @@ function setSelectedList() {
         document.title = listText + " - Ostoslista";
 
         ostoslistaState.selectedListId = listId;
-        
+
         joinList(ostoslistaState.selectedListId);
         refreshTodoItems();
         refreshSharedFriends();
