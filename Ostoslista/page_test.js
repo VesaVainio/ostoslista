@@ -1,7 +1,4 @@
 ﻿
-// TODO: Uutta listaa lisättäessä bugittaa. Ei automaattisesti vaihda uuteen listaan. Lisäksi listat tulevat drop-downiin kahteen kertaan.
-// List itemin editoinnin kuittaus enterillä ei poista editointimoodia
-
 var ostoslistaState = {
     userId: '', facebookId: '', username: '', accessToken: '', friends: null, waitingForFriends: false,
     selectedListId: '', editList: new Array(), editingItem: null
@@ -30,6 +27,8 @@ var TodoList = Backbone.Collection.extend({
     model: TodoItem
 });
 
+ostoslistaState.itemsCollection = new TodoList();
+
 var ItemView = Backbone.View.extend({
     template: _.template($('#item-template').html()),
 
@@ -43,12 +42,16 @@ var ItemView = Backbone.View.extend({
 
     initialize: function () {
         this.listenTo(this.model, 'change', this.render);
-        this.listenTo(this.model, 'destroy', this.remove);
+        this.listenTo(this.model, 'remove', this.animateRemove);
     },
 
     render: function () {
         this.$el.html(this.template(this.model.toJSON()));
         return this;
+    },
+
+    animateRemove: function () {
+        this.$el.slideUp();
     },
 
     toggleComplete: function () {
@@ -125,7 +128,7 @@ function refreshLists(callback) {
             return;
         }
 
-        var options = $('#lists');
+        var options = $('#lists').empty();
         $.each(listPermissionItems, function () {
             options.append($("<option />").val(this.listId).text(this.listName));
         });
@@ -155,14 +158,16 @@ function refreshTodoItems(callback) {
     query.read({ listId: listId }).then(function (todoItems) {
         var itemsElement = $('#todo-items').empty();
 
-        ostoslistaState.itemModels = $.map(todoItems, function (item) {
+        var itemModels = $.map(todoItems, function (item) {
             var model = new TodoItem(item);
             var view = new ItemView({ model: model });
             itemsElement.append(view.render().el);
             return model;
         });
 
-        itemsElement.toggle(ostoslistaState.itemModels.length > 0);
+        ostoslistaState.itemsCollection.set(itemModels);
+
+        itemsElement.toggle(itemModels.length > 0);
         $('#summary').html('<strong>' + todoItems.length + '</strong> asiaa listalla');
         cancelProgressIndicator('refreshItems');
         typeof callback === 'function' && callback();
@@ -175,12 +180,29 @@ function processItemUpdated(listId, itemId) {
     var query = todoItemTable.where({ listId: listId, id: itemId });
     query.read({ listId: listId }).then(function (todoItems) {
         if (todoItems.length === 1) {
-            var model = _.find(ostoslistaState.itemModels, function (item) { return item.id === itemId });
+            var model = _.find(ostoslistaState.itemsCollection.models, function (item) { return item.id === itemId });
             model.set(todoItems[0]);
             highlightItem(itemId);
         }
 
         cancelProgressIndicator('processItemUpdated');
+    }, handleError);
+}
+
+function processItemsDeleted(listId) {
+    // listId is needed both for where and read. In where it filters the results, in read it is used for checking permissions.
+    var query = todoItemTable.where({ listId: listId });
+
+    initProgressIndicator('processItemsDeleted');
+    query.read({ listId: listId }).then(function (todoItems) {
+        var itemModels = $.map(todoItems, function (item) {
+            var model = new TodoItem(item);
+            return model;
+        });
+
+        ostoslistaState.itemsCollection.set(itemModels);
+
+        cancelProgressIndicator('processItemsDeleted');
     }, handleError);
 }
 
@@ -439,6 +461,13 @@ function broadcastItemUpdated(itemId) {
     }
 }
 
+function broadcastItemsDeleted() {
+    var listId = $('#lists option:selected').val();
+
+    if (ostoslistaState.hub) {
+        ostoslistaState.hub.server.broadcastItemsDeleted(listId, ostoslistaState.username);
+    }
+}
 
 function leaveList() {
     ostoslistaState.hub.server.leaveList(ostoslistaState.selectedListId);
@@ -496,8 +525,8 @@ function deleteSelected() {
             method: "post",
             parameters: { listId: listId }
         }).done(function (results) {
-            broadcastListUpdate();
-            refreshTodoItems();
+            broadcastItemsDeleted();
+            processItemsDeleted(listId);
             cancelProgressIndicator('deleteSelected');
         }, handleError);
     }
@@ -582,14 +611,14 @@ $(function () {
     // Handle inserting new list
     $('#add-list').submit(function (evt) {
         var textbox = $('#new-list-name'),
-            itemText = textbox.val(),
+            itemText = textbox.val().capitalize(),
             listId = $('#lists option:selected').val();
         if (itemText !== '') {
             var newGuid = guid();
             listPermissionTable.insert({ listName: itemText, userName: ostoslistaState.username, listId: newGuid }).then(function () {
                 refreshLists(function () {
                     closeAddListPanel();
-                    $('#lists').val(newGuid);
+                    window.location.hash = 'listid=' + newGuid;
                 });
             }, handleError);
         }
@@ -689,6 +718,9 @@ $(function () {
         };
         hub.client.itemUpdated = function (listId, whoUpdated, updateTime, itemId) {
             processItemUpdated(listId, itemId);
+        };
+        hub.client.itemsDeleted = function (listId, whoUpdated, updateTime) {
+            processItemsDeleted(listId);
         };
         hub.client.beginListItemUpdating = function (itemId, whoUpdating, updateTime) {
             $('li[data-todoitem-id=' + itemId + ']').animate({ backgroundColor: "#DDDDDD" }, 100);

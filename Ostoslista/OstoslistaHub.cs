@@ -30,9 +30,9 @@ namespace Ostoslista
             Clients.OthersInGroup(listId).ItemUpdated(listId, whoUpdated, DateTime.UtcNow.ToLongTimeString(), itemId);
         }
 
-        public void BroadcastItemsDeleted(string listId, string whoUpdated, int[] itemsArray)
+        public void BroadcastItemsDeleted(string listId, string whoUpdated)
         {
-            Clients.OthersInGroup(listId).ItemsDeleted(listId, whoUpdated, DateTime.UtcNow.ToLongTimeString(), itemsArray);
+            Clients.OthersInGroup(listId).ItemsDeleted(listId, whoUpdated, DateTime.UtcNow.ToLongTimeString());
         }
 
         public void BeginListItemUpdating(string listId, int itemId, string whoUpdating)
