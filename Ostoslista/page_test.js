@@ -29,6 +29,20 @@ var TodoList = Backbone.Collection.extend({
 
 ostoslistaState.itemsCollection = new TodoList();
 
+var TotalView = Backbone.View.extend({
+    template: _.template($('#total-template').html()),
+
+    initialize: function () {
+        this.listenTo(this.model, 'add', this.render);
+        this.listenTo(this.model, 'remove', this.render);
+    },
+
+    render: function () {
+        this.$el.html(this.template(this.model.toJSON()));
+        return this;
+    }
+})
+
 var ItemView = Backbone.View.extend({
     template: _.template($('#item-template').html()),
 
@@ -169,7 +183,10 @@ function refreshTodoItems(callback) {
         ostoslistaState.itemsCollection.set(itemModels);
 
         itemsElement.toggle(itemModels.length > 0);
-        $('#summary').html('<strong>' + todoItems.length + '</strong> asiaa listalla');
+
+        var totalView = new TotalView({ model: ostoslistaState.itemsCollection });
+        $('#summary').empty().append(totalView.render().el);
+
         cancelProgressIndicator('refreshItems');
         typeof callback === 'function' && callback();
     }, handleError);
